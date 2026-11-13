@@ -1,0 +1,49 @@
+# Production stack for hrm.ragamaopticians.com. Secrets live in deploy/.env and
+# main-backend/.env.production on the server (never committed).
+name: hrm-ragama-opticians
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hrm
+      POSTGRES_USER: hrm
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U hrm -d hrm']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Forward-only migrations + idempotent permission/role seed; the API waits for it.
+  migrate:
+    build: ../main-backend
+    env_file: ../main-backend/.env.production
+    command: ['sh', '-c', 'node dist/scripts/db.js migrate && node dist/scripts/db.js seed']
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: 'no'
+
+  api:
+    build: ../main-backend
+    restart: unless-stopped
+    init: true
+    env_file: ../main-backend/.env.production
+    extra_hosts: ['host.docker.internal:host-gateway'] # MinIO runs on this host
+    ports: ['127.0.0.1:4030:5000']
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    build: ../main-frontend
+    restart: unless-stopped
+    environment:
+      API_URL: http://api:5000/api/v1
+      REFRESH_COOKIE_MAX_AGE: '604800'
+    ports: ['127.0.0.1:3050:3000']
+    depends_on: [api]
+
+volumes:
+  pgdata:
