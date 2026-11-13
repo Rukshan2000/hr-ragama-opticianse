@@ -1,0 +1,42 @@
+# Development stack with hot reload. Usage: docker compose -f docker-compose.dev.yml up
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: app_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - '5433:5432' # 5433 on the host to avoid clashing with a local PostgreSQL
+    volumes:
+      - pgdata-dev:/var/lib/postgresql/data
+      - ./scripts/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d app_db']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    init: true
+    env_file: .env
+    environment:
+      NODE_ENV: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_PASSWORD: password
+    ports:
+      - '${API_PORT:-5000}:5000'
+    volumes:
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+      - ./tests:/app/tests
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata-dev:
