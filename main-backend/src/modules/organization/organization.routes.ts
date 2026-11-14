@@ -5,11 +5,13 @@ import { PERMISSIONS as P } from '../../shared/constants/permissions';
 import { requirePermissions } from '../auth/auth.guard';
 import { masterController, unitsController as units } from './organization.controller';
 import * as s from './organization.schema';
+import { sendSuccess } from '../../shared/utils/response';
 import {
   branchesService,
   departmentsService,
   designationsService,
   levelsService,
+  unitsService,
 } from './organization.service';
 
 const tags = ['Organization'];
@@ -62,6 +64,18 @@ export const organizationRoutes: FastifyPluginAsyncZod = async (app) => {
     ],
   ];
 
+  for (const [path, svc] of [
+    ['branches', branchesService],
+    ['departments', departmentsService],
+    ['designations', designationsService],
+  ] as const) {
+    app.get(
+      `/${path}/next-code`,
+      { preHandler: manage, schema: { tags, security, summary: `Suggest the next ${path} code` } },
+      async (req, reply) => sendSuccess(reply, await svc.nextCode(req.auth!)),
+    );
+  }
+
   for (const [path, label, c, querystring, body, patch] of resources) {
     app.get(
       `/${path}`,
@@ -105,6 +119,17 @@ export const organizationRoutes: FastifyPluginAsyncZod = async (app) => {
     '/units/:id',
     { preHandler: read, schema: { tags, security, summary: 'Get unit', params: s.idParams } },
     h(units.get),
+  );
+  app.post(
+    '/units/generate',
+    {
+      preHandler: manage,
+      schema: { tags, security, summary: 'Generate the chart from branches and departments' },
+    },
+    async (req, reply) => {
+      const r = await unitsService.generate(req.auth!);
+      return sendSuccess(reply, r, { message: `${r.created} units added` });
+    },
   );
   app.post(
     '/units',

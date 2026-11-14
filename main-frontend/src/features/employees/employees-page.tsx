@@ -115,7 +115,7 @@ export function EmployeesPage() {
             description={filtered ? "Try a different search or filter." : "Add your first employee to start building your workforce records."}
           />
         }
-        footer={<Pagination meta={employees.data?.meta} onPageChange={list.setPage} />}
+        footer={<Pagination meta={employees.data?.meta} onPageChange={list.setPage} onLimitChange={list.setLimit} />}
       />
       <EmployeeFormDialog open={creating} onOpenChange={setCreating} />
     </PageContainer>

@@ -2,9 +2,9 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Loader2, Maximize2, Minus, Network, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Maximize2, Minimize, Minus, Expand, Network, Pencil, Plus, Trash2, Wand2 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -69,11 +69,13 @@ function Node({
 }) {
   const kids = tree.children.get(unit.id) ?? [];
   const open = !collapsed.has(unit.id);
+  // Leaf-only children stack vertically under the parent instead of spreading sideways.
+  const stack = kids.length > 1 && kids.every((k) => !tree.children.get(k.id)?.length);
   return (
     <li>
       <div
         className={cn(
-          "relative w-52 rounded-lg border bg-card px-3 py-2.5 text-left shadow-xs transition-colors",
+          "relative w-48 rounded-lg border bg-card px-3 py-2 text-left shadow-xs transition-colors",
           matches.has(unit.id) && "border-brand-accent ring-2 ring-brand-accent/30",
           selected === unit.id && "border-foreground/40 bg-subtle",
         )}
@@ -101,7 +103,7 @@ function Node({
         )}
       </div>
       {open && kids.length > 0 && (
-        <ul>
+        <ul className={stack ? "org-stack" : undefined} style={stack ? ({ "--cols": Math.min(3, Math.ceil(Math.sqrt(kids.length))) } as React.CSSProperties) : undefined}>
           {kids.map((k) => (
             <Node key={k.id} unit={k} tree={tree} collapsed={collapsed} toggle={toggle} matches={matches} selected={selected} onSelect={onSelect} />
           ))}
@@ -279,6 +281,23 @@ export function OrgChartPage() {
       return n;
     });
 
+  const generate = useMutation({
+    mutationFn: () => organizationApi.units.generate(),
+    onSuccess: (r) => {
+      toast.success(r.created ? `${r.created} units added from master data` : "Chart already matches master data");
+      qc.invalidateQueries({ queryKey: ["units"] });
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  // An empty chart is built from branches + departments automatically (once per visit).
+  const autoRan = useRef(false);
+  useEffect(() => {
+    if (canManage && units.data?.length === 0 && !autoRan.current) {
+      autoRan.current = true;
+      generate.mutate();
+    }
+  }, [canManage, units.data, generate]);
+
   const remove = useMutation({
     mutationFn: (u: OrgUnit) => organizationApi.units.remove(u.id),
     onSuccess: () => {
@@ -292,6 +311,27 @@ export function OrgChartPage() {
 
   const sel = selected ? tree.byId.get(selected) : undefined;
   const roots = tree.children.get(null) ?? [];
+  const viewport = useRef<HTMLDivElement>(null);
+  const content = useRef<HTMLDivElement>(null);
+  const fit = () => {
+    if (!viewport.current || !content.current) return;
+    const w = (viewport.current.clientWidth - 64) / content.current.offsetWidth;
+    setZoom(Math.min(1, Math.max(ZOOM.min, +w.toFixed(2))));
+  };
+  // Fit the whole chart on first load / when units change.
+  useEffect(() => fit(), [units.data]);
+  const shell = useRef<HTMLDivElement>(null);
+  const [isFull, setIsFull] = useState(false);
+  useEffect(() => {
+    const onChange = () => {
+      setIsFull(document.fullscreenElement === shell.current);
+      requestAnimationFrame(() => fit());
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+  const toggleFull = () =>
+    document.fullscreenElement ? document.exitFullscreen() : shell.current?.requestFullscreen().catch(() => toast.error("Full screen isn't available in this browser"));
   const zoomBy = (d: number) => setZoom((v) => Math.min(ZOOM.max, Math.max(ZOOM.min, +(v + d).toFixed(2))));
 
   return (
@@ -301,13 +341,18 @@ export function OrgChartPage() {
         description="Structural hierarchy of the organization. Click a unit for details."
         actions={
           canManage && (
-            <Button onClick={() => setDialog({ mode: "create", parentId: null })}>
-              <Plus /> New unit
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => generate.mutate()} disabled={generate.isPending}>
+                {generate.isPending ? <Loader2 className="animate-spin" /> : <Wand2 />} Sync from master data
+              </Button>
+              <Button onClick={() => setDialog({ mode: "create", parentId: null })}>
+                <Plus /> New unit
+              </Button>
+            </>
           )
         }
       />
-      <div className="overflow-hidden rounded-xl border bg-card">
+      <div ref={shell} className="flex flex-col overflow-hidden rounded-xl border bg-card [&:fullscreen]:rounded-none [&:fullscreen]:border-0">
         <div className="flex flex-col gap-2 border-b border-border-subtle p-3 sm:flex-row sm:items-center">
           <SearchInput value={search} onChange={setSearch} placeholder="Find a unit or department" />
           {term && (
@@ -330,8 +375,11 @@ export function OrgChartPage() {
               <Button variant="ghost" size="icon-sm" aria-label="Zoom in" onClick={() => zoomBy(ZOOM.step)} disabled={zoom >= ZOOM.max}>
                 <Plus />
               </Button>
-              <Button variant="ghost" size="icon-sm" aria-label="Reset zoom" onClick={() => setZoom(1)}>
+              <Button variant="ghost" size="icon-sm" aria-label="Fit to screen" title="Fit to screen" onClick={fit}>
                 <Maximize2 />
+              </Button>
+              <Button variant="ghost" size="icon-sm" aria-label={isFull ? "Exit full screen" : "Full screen"} title={isFull ? "Exit full screen" : "Full screen"} onClick={toggleFull}>
+                {isFull ? <Minimize /> : <Expand />}
               </Button>
             </div>
           </div>
@@ -355,8 +403,8 @@ export function OrgChartPage() {
             }
           />
         ) : (
-          <div className="min-h-[28rem] overflow-auto bg-subtle/30 p-8">
-            <div className="org-tree w-max origin-top-left transition-transform" style={{ transform: `scale(${zoom})` }}>
+          <div ref={viewport} className="min-h-[28rem] flex-1 overflow-auto bg-subtle/30 p-8">
+            <div ref={content} className="org-tree mx-auto w-max origin-top transition-transform" style={{ transform: `scale(${zoom})` }}>
               <ul>
                 {roots.map((r) => (
                   <Node key={r.id} unit={r} tree={tree} collapsed={effectiveCollapsed} toggle={toggle} matches={matches} selected={selected} onSelect={setSelected} />

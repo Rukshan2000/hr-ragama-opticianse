@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ChevronsUpDown, Search, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronsUpDown, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -133,32 +133,93 @@ export function DataTable<T>({
   );
 }
 
-export function Pagination({ meta, onPageChange }: { meta: PaginationMeta | undefined; onPageChange: (page: number) => void }) {
+/** Page numbers to show: always first/last, a window around the current page, gaps as null. */
+function pageList(page: number, total: number): (number | null)[] {
+  const keep = new Set([1, total, page - 1, page, page + 1].filter((p) => p >= 1 && p <= total));
+  const out: (number | null)[] = [];
+  let prev = 0;
+  for (const p of [...keep].sort((a, b) => a - b)) {
+    if (p - prev === 2) out.push(prev + 1); // a single hidden page: just show it
+    else if (p - prev > 2) out.push(null);
+    out.push(p);
+    prev = p;
+  }
+  return out;
+}
+
+const PAGE_SIZES = ["10", "20", "50", "100"];
+
+export function Pagination({
+  meta,
+  onPageChange,
+  onLimitChange,
+}: {
+  meta: PaginationMeta | undefined;
+  onPageChange: (page: number) => void;
+  /** Shows a rows-per-page selector when given. */
+  onLimitChange?: (limit: number) => void;
+}) {
   if (!meta) return null;
+  const pages = Math.max(meta.totalPages, 1);
   const from = meta.total === 0 ? 0 : (meta.page - 1) * meta.limit + 1;
   const to = Math.min(meta.page * meta.limit, meta.total);
   return (
-    <nav aria-label="Pagination" className="flex items-center justify-between gap-3 text-[13px] text-muted-foreground">
-      <span className="tabular-nums">
-        {from}–{to} of {meta.total}
-      </span>
-      <div className="flex items-center gap-1.5">
-        <Button variant="outline" size="icon-sm" aria-label="Previous page" disabled={meta.page <= 1} onClick={() => onPageChange(meta.page - 1)}>
-          <ChevronLeft />
-        </Button>
-        <span className="px-2 tabular-nums">
-          {meta.page} / {Math.max(meta.totalPages, 1)}
+    <nav aria-label="Pagination" className="flex flex-wrap items-center justify-between gap-3 text-[13px] text-muted-foreground">
+      <div className="flex items-center gap-3">
+        <span className="tabular-nums">
+          Showing <span className="font-medium text-foreground">{from}–{to}</span> of{" "}
+          <span className="font-medium text-foreground">{meta.total}</span>
         </span>
-        <Button
-          variant="outline"
-          size="icon-sm"
-          aria-label="Next page"
-          disabled={meta.page >= meta.totalPages}
-          onClick={() => onPageChange(meta.page + 1)}
-        >
-          <ChevronRight />
-        </Button>
+        {onLimitChange && (
+          <Select items={PAGE_SIZES.map((v) => ({ value: v, label: `${v} / page` }))} value={String(meta.limit)} onValueChange={(v) => v && onLimitChange(Number(v))}>
+            <SelectTrigger aria-label="Rows per page" className="h-8 w-28 data-[size=default]:h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl p-1">
+              {PAGE_SIZES.map((v) => (
+                <SelectItem key={v} value={v} className="rounded-lg px-2 py-1.5">
+                  {v} / page
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
+      {pages > 1 && (
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="icon-sm" aria-label="First page" disabled={meta.page <= 1} onClick={() => onPageChange(1)}>
+            <ChevronsLeft />
+          </Button>
+          <Button variant="outline" size="icon-sm" aria-label="Previous page" disabled={meta.page <= 1} onClick={() => onPageChange(meta.page - 1)}>
+            <ChevronLeft />
+          </Button>
+          {pageList(meta.page, pages).map((p, i) =>
+            p === null ? (
+              <span key={`gap-${i}`} className="px-1" aria-hidden>
+                …
+              </span>
+            ) : (
+              <Button
+                key={p}
+                variant={p === meta.page ? "default" : "ghost"}
+                size="icon-sm"
+                aria-label={`Page ${p}`}
+                aria-current={p === meta.page ? "page" : undefined}
+                onClick={() => onPageChange(p)}
+                className="tabular-nums"
+              >
+                {p}
+              </Button>
+            ),
+          )}
+          <Button variant="outline" size="icon-sm" aria-label="Next page" disabled={meta.page >= pages} onClick={() => onPageChange(meta.page + 1)}>
+            <ChevronRight />
+          </Button>
+          <Button variant="outline" size="icon-sm" aria-label="Last page" disabled={meta.page >= pages} onClick={() => onPageChange(pages)}>
+            <ChevronsRight />
+          </Button>
+        </div>
+      )}
     </nav>
   );
 }

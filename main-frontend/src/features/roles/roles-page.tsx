@@ -87,7 +87,7 @@ export function RolesPage() {
         onRowClick={(r) => setEditing({ role: r })}
         toolbar={<SearchInput value={list.search} onChange={list.setSearch} placeholder="Search roles" />}
         empty={<EmptyState icon={ShieldCheck} title={list.params.search ? "No roles match your search" : "No roles yet"} />}
-        footer={<Pagination meta={roles.data?.meta} onPageChange={list.setPage} />}
+        footer={<Pagination meta={roles.data?.meta} onPageChange={list.setPage} onLimitChange={list.setLimit} />}
       />
       <RoleSheet open={Boolean(editing)} role={editing?.role ?? null} readOnly={!canManage} onOpenChange={(o) => !o && setEditing(null)} />
       <ConfirmDialog

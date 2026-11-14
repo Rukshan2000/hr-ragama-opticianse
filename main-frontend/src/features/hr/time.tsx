@@ -168,7 +168,7 @@ function AttendanceRecords() {
           </>
         }
         empty={<EmptyState icon={Clock} title="No attendance in this range" />}
-        footer={<Pagination meta={q.data?.meta} onPageChange={list.setPage} />}
+        footer={<Pagination meta={q.data?.meta} onPageChange={list.setPage} onLimitChange={list.setLimit} />}
       />
       {dialog.open && <RecordDialog open onOpenChange={(o) => setDialog({ open: o, row: null })} row={dialog.row} />}
     </div>
@@ -609,7 +609,7 @@ export function LeaveRequestsList({ mine }: { mine?: boolean }) {
           </>
         }
         empty={<EmptyState icon={CalendarDays} title="No leave requests" />}
-        footer={<Pagination meta={q.data?.meta} onPageChange={list.setPage} />}
+        footer={<Pagination meta={q.data?.meta} onPageChange={list.setPage} onLimitChange={list.setLimit} />}
       />
       {apply && <ApplyLeaveDialog open onOpenChange={setApply} onBehalf={!mine && can("leave:create")} />}
       {open && <LeaveDetail id={open} onClose={() => setOpen(null)} />}

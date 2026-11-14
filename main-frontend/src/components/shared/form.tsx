@@ -25,9 +25,9 @@ export function FormField({
   const id = useId();
   const descId = error || hint ? `${id}-desc` : undefined;
   return (
-    <div className={cn("space-y-1.5", className)}>
+    <div className={cn("group space-y-1.5", className)}>
       <div className="flex items-center justify-between">
-        <Label htmlFor={id} className="text-[13px]">
+        <Label htmlFor={id} className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase transition-colors group-focus-within:text-primary">
           {label}
         </Label>
         {action}

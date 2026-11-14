@@ -1,3 +1,4 @@
+import { paginate } from '../../shared/utils/pagination';
 import { randomUUID } from 'node:crypto';
 import { db, withTransaction, type DbExecutor } from '../../database/knex';
 import { PERMISSIONS as P, type Permission } from '../../shared/constants/permissions';
@@ -167,26 +168,30 @@ const docQuery = (tenantId: string) =>
 export const documentsService = {
   async listAll(
     auth: AuthContext,
-    q: { search?: string; category?: string; expiringWithinDays?: number },
+    q: {
+      search?: string;
+      category?: string;
+      expiringWithinDays?: number;
+      page: number;
+      limit: number;
+    },
   ) {
     const tenantId = requireTenantId(auth);
-    return docQuery(tenantId)
-      .modify((b) => {
-        if (q.category) b.where('d.category', q.category);
-        if (q.search)
-          b.where((w) =>
-            w
-              .whereILike('d.title', `%${q.search}%`)
-              .orWhereRaw(`(e.first_name || ' ' || e.last_name) ILIKE ?`, [`%${q.search}%`])
-              .orWhereILike('e.employee_number', `%${q.search}%`),
-          );
-        if (q.expiringWithinDays !== undefined)
-          b.whereNotNull('d.expiry_date').whereRaw(`d.expiry_date <= CURRENT_DATE + ?::int`, [
-            q.expiringWithinDays,
-          ]);
-      })
-      .orderBy('d.created_at', 'desc')
-      .limit(500);
+    const base = docQuery(tenantId).modify((b) => {
+      if (q.category) b.where('d.category', q.category);
+      if (q.search)
+        b.where((w) =>
+          w
+            .whereILike('d.title', `%${q.search}%`)
+            .orWhereRaw(`(e.first_name || ' ' || e.last_name) ILIKE ?`, [`%${q.search}%`])
+            .orWhereILike('e.employee_number', `%${q.search}%`),
+        );
+      if (q.expiringWithinDays !== undefined)
+        b.whereNotNull('d.expiry_date').whereRaw(`d.expiry_date <= CURRENT_DATE + ?::int`, [
+          q.expiringWithinDays,
+        ]);
+    });
+    return paginate<Record<string, unknown>>(base, q, { column: 'd.created_at', order: 'desc' });
   },
 
   async list(auth: AuthContext, employeeId: string) {

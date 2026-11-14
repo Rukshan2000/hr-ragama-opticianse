@@ -25,7 +25,7 @@ const nameCol = <T extends { name: string; description?: string | null }>(header
   ),
 });
 const deptFields = (nameLabel: string) => [
-  { name: "code", label: "Code", type: "code" as const, required: true },
+  { name: "code", label: "Code", type: "code" as const, required: true, autoGenerate: true },
   { name: "name", label: nameLabel, required: true },
   { name: "description", label: "Description", type: "textarea" as const },
 ];
@@ -42,7 +42,7 @@ export const branchesConfig: MasterConfig<Branch & Record<string, unknown>> = {
   defaultSort: { sort: "name", order: "asc" },
   deleteHint: inUse,
   fields: [
-    { name: "code", label: "Code", type: "code", required: true },
+    { name: "code", label: "Code", type: "code", required: true, autoGenerate: true },
     { name: "name", label: "Name", required: true },
     { name: "timezone", label: "Time zone", type: "timezone", required: true },
     { name: "phone", label: "Phone" },

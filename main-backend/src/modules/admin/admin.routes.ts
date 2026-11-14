@@ -23,9 +23,14 @@ const tags = ['Administration'];
 const security = [{ bearerAuth: [] }];
 const CONDITIONS = ['new', 'good', 'fair', 'poor', 'damaged'] as const;
 
-const categoryBody = z.object({ code, name: name(100), isActive: z.boolean().default(true) });
+const categoryBody = z.object({
+  code: code.optional(),
+  name: name(100),
+  isActive: z.boolean().default(true),
+});
 const assetCategories = crudResource({
   table: 'asset_categories',
+  codePrefix: 'AC',
   label: 'Asset category',
   tag: 'Administration',
   read: P.ASSETS_READ,
@@ -91,7 +96,7 @@ const assets = crudResource({
 });
 
 const expenseCategoryBody = z.object({
-  code,
+  code: code.optional(),
   name: name(100),
   maxAmount: money.positive().nullish(),
   requiresReceipt: z.boolean().default(true),
@@ -99,6 +104,7 @@ const expenseCategoryBody = z.object({
 });
 const expenseCategories = crudResource({
   table: 'expense_categories',
+  codePrefix: 'EC',
   label: 'Expense category',
   tag: 'Administration',
   read: P.SELF_SERVICE,

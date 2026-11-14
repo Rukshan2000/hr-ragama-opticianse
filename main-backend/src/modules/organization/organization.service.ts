@@ -34,7 +34,7 @@ async function guard<T>(label: string, fn: () => Promise<T>, badRef?: string): P
 
 type MasterRepo = typeof branchesRepository;
 
-function masterService(repo: MasterRepo, label: string, resource: string) {
+function masterService(repo: MasterRepo, label: string, resource: string, codePrefix?: string) {
   return {
     async list(auth: AuthContext, query: ListQuery & { isActive?: boolean }) {
       const { items, meta } = await repo.list(requireTenantId(auth), query);
@@ -45,8 +45,15 @@ function masterService(repo: MasterRepo, label: string, resource: string) {
       if (!row) throw new NotFoundError(resource);
       return toCamel(row);
     },
-    async create(auth: AuthContext, input: object) {
+    async nextCode(auth: AuthContext) {
+      if (!codePrefix) throw new NotFoundError('Code generator');
+      return { code: await repo.nextCode(requireTenantId(auth), codePrefix) };
+    },
+    async create(auth: AuthContext, input: { code?: string | null }) {
       const tenantId = requireTenantId(auth);
+      // ponytail: two simultaneous auto-codes can collide → 409 via unique index; user just retries.
+      if (codePrefix && !input.code)
+        input = { ...input, code: await repo.nextCode(tenantId, codePrefix) };
       return toCamel(await guard(label, () => repo.insert(tenantId, toSnake(input))));
     },
     async update(auth: AuthContext, id: string, input: object) {
@@ -62,12 +69,18 @@ function masterService(repo: MasterRepo, label: string, resource: string) {
   };
 }
 
-export const branchesService = masterService(branchesRepository, 'branch', 'Branch');
-export const departmentsService = masterService(departmentsRepository, 'department', 'Department');
+export const branchesService = masterService(branchesRepository, 'branch', 'Branch', 'BR');
+export const departmentsService = masterService(
+  departmentsRepository,
+  'department',
+  'Department',
+  'DEP',
+);
 export const designationsService = masterService(
   designationsRepository,
   'designation',
   'Designation',
+  'DES',
 );
 const baseLevels = masterService(levelsRepository, 'level', 'Organization level');
 export const levelsService = {
@@ -102,6 +115,79 @@ function toUnitDto(u: UnitRow) {
 }
 
 export const unitsService = {
+  /**
+   * Builds the chart from master data: company root → one unit per active branch → one unit per
+   * active department under each branch. Idempotent: units are matched by code
+   * (ORG, <branch code>, <branch code>.<dept code>), so re-running only adds what is missing.
+   */
+  async generate(auth: AuthContext) {
+    const tenantId = requireTenantId(auth);
+    return withTransaction(async (trx) => {
+      await unitsRepository.lockTree(tenantId, trx);
+      const levels = (await trx('org_levels')
+        .where({ tenant_id: tenantId })
+        .orderBy('rank')
+        .select('id', 'name', 'rank')) as { id: string; name: string; rank: number }[];
+      const byName = (n: string) => levels.find((l) => l.name.toLowerCase() === n);
+      const rootLevel = levels[0];
+      const branchLevel = byName('branch') ?? levels[1];
+      const deptLevel = byName('department') ?? levels.at(-1);
+      if (
+        !rootLevel ||
+        !branchLevel ||
+        !deptLevel ||
+        !(rootLevel.rank < branchLevel.rank && branchLevel.rank < deptLevel.rank)
+      )
+        throw new BadRequestError(
+          'Add at least three organization levels (e.g. Company, Branch, Department) first',
+        );
+
+      const tenant = await trx('tenants').where({ id: tenantId }).first('name');
+      const branches = await trx('branches')
+        .where({ tenant_id: tenantId, is_active: true })
+        .orderBy('code');
+      const depts = await trx('departments')
+        .where({ tenant_id: tenantId, is_active: true })
+        .orderBy('code');
+      const existing = new Map<string, string>(
+        (
+          await trx('org_units')
+            .where({ tenant_id: tenantId })
+            .whereNotNull('code')
+            .select('code', 'id')
+        ).map((u: { code: string; id: string }) => [u.code, u.id]),
+      );
+      let created = 0;
+      const ensure = async (code: string, data: Record<string, unknown>) => {
+        const found = existing.get(code);
+        if (found) return found;
+        const id = await unitsRepository.insert(tenantId, { ...data, code }, trx);
+        existing.set(code, id);
+        created++;
+        return id;
+      };
+
+      const root = await ensure('ORG', { name: tenant?.name ?? 'Company', level_id: rootLevel.id });
+      for (const [i, b] of branches.entries()) {
+        const branchId = await ensure(b.code, {
+          name: b.name,
+          level_id: branchLevel.id,
+          parent_id: root,
+          sort_order: i,
+        });
+        for (const [j, d] of depts.entries())
+          await ensure(`${b.code}.${d.code}`.slice(0, 30), {
+            name: d.name,
+            level_id: deptLevel.id,
+            parent_id: branchId,
+            department_id: d.id,
+            sort_order: j,
+          });
+      }
+      return { created };
+    });
+  },
+
   async list(auth: AuthContext) {
     return (await unitsRepository.listAll(requireTenantId(auth))).map(toUnitDto);
   },

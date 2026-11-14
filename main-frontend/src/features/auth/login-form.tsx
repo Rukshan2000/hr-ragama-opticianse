@@ -1,6 +1,5 @@
 "use client";
 
-import { SINGLE_TENANT } from "@/config/tenancy";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { Fingerprint, Loader2 } from "lucide-react";
@@ -100,17 +99,6 @@ export function LoginForm() {
     <AuthCard
       title="Welcome back"
       description="Sign in to your workspace to continue."
-      footer={
-        <>
-          New here?{" "}
-          <Link
-            href="/register"
-            className="font-medium text-foreground underline-offset-4 hover:underline"
-          >
-            {SINGLE_TENANT ? "Create an account" : "Create an organization"}
-          </Link>
-        </>
-      }
     >
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
         {error && <FormAlert>{error}</FormAlert>}

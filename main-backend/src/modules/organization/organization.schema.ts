@@ -32,7 +32,8 @@ export const masterListQuery = listQuerySchema(['name', 'code', 'createdAt'], 'n
 });
 
 export const branchBody = z.object({
-  code,
+  // Omit to auto-generate (BR-001, BR-002, …).
+  code: code.optional(),
   name,
   address: optionalText(500),
   phone: optionalText(30),
@@ -42,7 +43,7 @@ export const branchBody = z.object({
 });
 
 export const departmentBody = z.object({
-  code,
+  code: code.optional(),
   name,
   description: optionalText(500),
   isActive: z.boolean().default(true),

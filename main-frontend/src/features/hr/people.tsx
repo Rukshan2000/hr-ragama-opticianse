@@ -81,7 +81,7 @@ export function EmployeeDocuments({ employeeId }: { employeeId: string }) {
             <li key={d.id} className="flex items-center gap-3 px-5 py-3">
               <FileText className="size-4 shrink-0 text-muted-foreground" />
               <div className="min-w-0 flex-1">
-                <a href={fileUrl(String(d.fileId))} className="block truncate text-[13px] font-medium hover:underline">{String(d.title)}</a>
+                <FileLink id={String(d.fileId)} name={String(d.title)} fileName={d.fileName as string} />
                 <p className="text-xs text-muted-foreground">
                   {label(d.category as string)} · {String(d.fileName)}
                   {d.expiryDate ? <> · expires {formatDate(d.expiryDate as string)}</> : null}
@@ -103,32 +103,37 @@ export function EmployeeDocuments({ employeeId }: { employeeId: string }) {
 
 export function DocumentsPage() {
   const { can } = useSession();
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState<string | null>(null);
-  const [expiring, setExpiring] = useState(false);
+  const list = useListState({ sort: "createdAt", order: "desc" });
+  const [category, setCategoryRaw] = useState<string | null>(null);
+  const [expiring, setExpiringRaw] = useState(false);
   const [upload, setUpload] = useState(false);
+  const setCategory = (v: string | null) => (setCategoryRaw(v), list.setPage(1));
+  const setExpiring = (v: boolean) => (setExpiringRaw(v), list.setPage(1));
+  const params = { page: list.page, limit: list.limit, search: list.params.search, category: category ?? undefined, expiringWithinDays: expiring ? 60 : undefined };
   const q = useQuery({
-    queryKey: ["documents", "all", search, category, expiring],
-    queryFn: () => api.get<Row[]>("documents", { search: search.trim() || undefined, category: category ?? undefined, expiringWithinDays: expiring ? 60 : undefined }),
+    queryKey: ["documents", "all", params],
+    queryFn: () => api.list<Row>("documents", params),
+    placeholderData: (p) => p,
   });
   return (
     <PageContainer>
       <PageHeader title="Employee documents" description="Every employee file in one place. Downloads are authorized per request; nothing is public." actions={can("documents:manage") && <Button onClick={() => setUpload(true)}><Upload /> Upload document</Button>} />
       <DataTable
         columns={[
-          { key: "title", header: "Document", cell: (r) => <FileLink id={r.fileId as string} name={r.title as string} /> },
+          { key: "title", header: "Document", cell: (r) => <FileLink id={r.fileId as string} name={r.title as string} fileName={r.fileName as string} /> },
           col.employee(),
           { key: "cat", header: "Category", cell: (r) => label(r.category as string) },
           col.date("expiryDate", "Expires"),
           col.date("createdAt", "Uploaded"),
         ]}
-        rows={q.data}
+        rows={q.data?.items}
         rowKey={(r) => r.id}
         loading={q.isPending}
         error={q.error?.message}
+        footer={<Pagination meta={q.data?.meta} onPageChange={list.setPage} onLimitChange={list.setLimit} />}
         toolbar={
           <>
-            <SearchInput value={search} onChange={setSearch} placeholder="Search title or employee" />
+            <SearchInput value={list.search} onChange={list.setSearch} placeholder="Search title or employee" />
             <div className="w-40"><SelectField value={category} onChange={setCategory} options={opts(DOC_CATEGORIES)} noneLabel="All categories" /></div>
             <Button variant={expiring ? "default" : "outline"} size="sm" onClick={() => setExpiring(!expiring)}>Expiring in 60 days</Button>
           </>
@@ -234,7 +239,7 @@ export function ContractsList({ employeeId }: { employeeId?: string }) {
                 "—"
               ),
           },
-          { key: "doc", header: "Document", hideBelow: "lg", cell: (r) => <FileLink id={r.fileId as string} name={r.fileName as string} /> },
+          { key: "doc", header: "Document", hideBelow: "lg", cell: (r) => <FileLink id={r.fileId as string} name={r.fileName as string} fileName={r.fileName as string} /> },
           col.status(),
           {
             key: "a",
@@ -271,7 +276,7 @@ export function ContractsList({ employeeId }: { employeeId?: string }) {
           )
         }
         empty={<EmptyState icon={FileSignature} title="No contracts" />}
-        footer={<Pagination meta={q.data?.meta} onPageChange={list.setPage} />}
+        footer={<Pagination meta={q.data?.meta} onPageChange={list.setPage} onLimitChange={list.setLimit} />}
       />
       {dialog && (
         <CrudDialog

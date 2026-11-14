@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { REFRESH_COOKIE } from "@/lib/session";
 
 // Optimistic page guard only: real authorization is enforced by the backend on every API call.
-const GUEST_ONLY = ["/login", "/register", "/forgot-password", "/reset-password"];
+const GUEST_ONLY = ["/login", "/forgot-password", "/reset-password"];
 
 export function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;

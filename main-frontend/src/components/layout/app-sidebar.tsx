@@ -5,6 +5,7 @@ import {
   Building2,
   Check,
   ChevronDown,
+  ChevronsDownUp,
   ChevronsUpDown,
   LogOut,
   PanelLeftClose,
@@ -13,7 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UserAvatar } from "@/components/shared/badges";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,15 +50,21 @@ function NavLink({
 }) {
   const pathname = usePathname();
   const active = isActive(item.href, pathname);
+  const ref = useRef<HTMLAnchorElement>(null);
+  // Keep the current page visible in a long, scrolled sidebar.
+  useEffect(() => {
+    if (active) ref.current?.scrollIntoView({ block: "nearest" });
+  }, [active]);
   const link = (
     <Link
+      ref={ref}
       href={item.href}
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       className={cn(
         "group flex h-9 items-center gap-2.5 rounded-[10px] px-2.5 text-[13.5px] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         active
-          ? "bg-subtle text-foreground"
+          ? "bg-brand-accent/12 font-semibold text-foreground ring-1 ring-brand-accent/25"
           : "text-muted-foreground hover:bg-subtle/60 hover:text-foreground",
         collapsed && "justify-center px-0",
       )}
@@ -162,9 +169,37 @@ function NavGroups({
 }) {
   const { can, inTenant } = useSession();
   const [closed, setClosed] = useState<Record<string, boolean>>({});
+  const groups = visibleNavigation(can, inTenant);
+  // Navigating into a collapsed group opens it, so the current page is always shown.
+  const pathname = usePathname();
+  const activeGroup = groups.find((g) => g.items.some((i) => isActive(i.href, pathname)))?.title;
+  const [seenPath, setSeenPath] = useState(pathname);
+  if (seenPath !== pathname) {
+    setSeenPath(pathname);
+    if (activeGroup && closed[activeGroup]) setClosed({ ...closed, [activeGroup]: false });
+  }
+  const allClosed = groups.every((g) => closed[g.title]);
+  const setAll = (value: boolean) =>
+    setClosed(Object.fromEntries(groups.map((g) => [g.title, value])));
   return (
     <nav className="flex-1 space-y-4 overflow-y-auto" aria-label="Main">
-      {visibleNavigation(can, inTenant).map((g) => (
+      {!collapsed && (
+        <div className="flex justify-end px-1">
+          <button
+            type="button"
+            onClick={() => setAll(!allClosed)}
+            className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-text-muted transition-colors hover:bg-subtle/60 hover:text-foreground"
+          >
+            {allClosed ? (
+              <ChevronsUpDown className="size-3.5" />
+            ) : (
+              <ChevronsDownUp className="size-3.5" />
+            )}
+            {allClosed ? "Expand all" : "Collapse all"}
+          </button>
+        </div>
+      )}
+      {groups.map((g) => (
         <div key={g.title} className="space-y-0.5">
           {!collapsed && (
             <button

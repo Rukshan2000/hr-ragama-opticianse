@@ -26,7 +26,7 @@ const year = z.number().int().min(2000).max(2100);
 const month = z.number().int().min(1).max(12);
 
 const componentBody = z.object({
-  code,
+  code: code.optional(),
   name: name(100),
   kind: z.enum(['earning', 'deduction']),
   isTaxable: z.boolean().default(true),
@@ -35,6 +35,7 @@ const componentBody = z.object({
 });
 const components = crudResource({
   table: 'salary_components',
+  codePrefix: 'SC',
   label: 'Salary component',
   tag: 'Payroll',
   read: P.PAYROLL_READ,

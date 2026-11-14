@@ -155,7 +155,7 @@ export function UsersPage() {
             description={list.params.search || status !== "all" ? "Try a different search or status." : "Add your first teammate to get started."}
           />
         }
-        footer={<Pagination meta={users.data?.meta} onPageChange={list.setPage} />}
+        footer={<Pagination meta={users.data?.meta} onPageChange={list.setPage} onLimitChange={list.setLimit} />}
       />
       <CreateUserDialog open={creating} onOpenChange={setCreating} />
       <UserSheet userId={viewing} onOpenChange={(o) => !o && setViewing(null)} />

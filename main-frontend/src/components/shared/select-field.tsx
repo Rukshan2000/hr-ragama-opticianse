@@ -35,8 +35,8 @@ export function SelectField({
       onValueChange={(v) => onChange(v === NONE || v === null ? null : String(v))}
       disabled={disabled}
     >
-      <SelectTrigger {...aria} className="w-full">
-        <SelectValue placeholder={placeholder} />
+      <SelectTrigger {...aria} className="w-full min-w-0">
+        <SelectValue placeholder={placeholder} className="truncate" />
       </SelectTrigger>
       <SelectContent className="max-h-72 rounded-xl p-1">
         {items.map((o) => (

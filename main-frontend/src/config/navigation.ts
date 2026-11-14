@@ -66,10 +66,6 @@ export const navigation: NavGroup[] = [
     title: "Organization",
     items: [
       { title: "Organization Chart", href: "/organization/chart", icon: Network, permission: "organization:read", context: "tenant" },
-      { title: "Branches", href: "/organization/branches", icon: MapPin, permission: "organization:read", context: "tenant" },
-      { title: "Departments", href: "/organization/departments", icon: Building2, permission: "organization:read", context: "tenant" },
-      { title: "Designations", href: "/organization/designations", icon: Briefcase, permission: "organization:read", context: "tenant" },
-      { title: "Organization Levels", href: "/organization/levels", icon: Layers, permission: "organization:read", context: "tenant" },
     ],
   },
   {
@@ -86,17 +82,12 @@ export const navigation: NavGroup[] = [
     title: "Time & Attendance",
     items: [
       { title: "Attendance", href: "/attendance", icon: Clock, permission: "attendance:read", context: "tenant" },
-      { title: "Shifts", href: "/shifts", icon: Timer, permission: "shifts:manage", context: "tenant" },
-      { title: "Work Schedules", href: "/schedules", icon: CalendarRange, permission: "shifts:manage", context: "tenant" },
-      { title: "Holidays", href: "/holidays", icon: Sun, permission: "organization:read", context: "tenant" },
     ],
   },
   {
     title: "Leave",
     items: [
       { title: "Leave Requests", href: "/leave", icon: CalendarDays, permission: "leave:read", context: "tenant" },
-      { title: "Leave Types", href: "/leave/types", icon: SlidersHorizontal, permission: "leave:manage", context: "tenant" },
-      { title: "Leave Policies", href: "/leave/policies", icon: ScrollText, permission: "leave:manage", context: "tenant" },
       { title: "Leave Calendar", href: "/leave/calendar", icon: CalendarRange, permission: "leave:read", context: "tenant" },
     ],
   },
@@ -106,7 +97,6 @@ export const navigation: NavGroup[] = [
       { title: "Salary Structures", href: "/payroll/salaries", icon: Wallet, permission: "payroll:read", context: "tenant" },
       { title: "Payroll Processing", href: "/payroll/runs", icon: BadgeDollarSign, permission: "payroll:read", context: "tenant" },
       { title: "Payslips", href: "/payroll/payslips", icon: Receipt, permission: "payroll:read", context: "tenant" },
-      { title: "Statutory Policies", href: "/payroll/policies", icon: ScrollText, permission: "payroll:read", context: "tenant" },
       { title: "Payroll Reports", href: "/reports?type=payroll", icon: BarChart3, permission: "payroll:read", context: "tenant" },
     ],
   },
@@ -118,6 +108,21 @@ export const navigation: NavGroup[] = [
       { title: "Applicants", href: "/recruitment/applicants", icon: Users, permission: "recruitment:read", context: "tenant" },
       { title: "Performance", href: "/performance", icon: Award, permission: "performance:read", context: "tenant" },
       { title: "Training", href: "/training", icon: BookOpen, permission: "training:read", context: "tenant" },
+    ],
+  },
+  {
+    title: "Master Data",
+    items: [
+      { title: "Branches", href: "/organization/branches", icon: MapPin, permission: "organization:read", context: "tenant" },
+      { title: "Departments", href: "/organization/departments", icon: Building2, permission: "organization:read", context: "tenant" },
+      { title: "Designations", href: "/organization/designations", icon: Briefcase, permission: "organization:read", context: "tenant" },
+      { title: "Organization Levels", href: "/organization/levels", icon: Layers, permission: "organization:read", context: "tenant" },
+      { title: "Shifts", href: "/shifts", icon: Timer, permission: "shifts:manage", context: "tenant" },
+      { title: "Work Schedules", href: "/schedules", icon: CalendarRange, permission: "shifts:manage", context: "tenant" },
+      { title: "Holidays", href: "/holidays", icon: Sun, permission: "organization:read", context: "tenant" },
+      { title: "Leave Types", href: "/leave/types", icon: SlidersHorizontal, permission: "leave:manage", context: "tenant" },
+      { title: "Leave Policies", href: "/leave/policies", icon: ScrollText, permission: "leave:manage", context: "tenant" },
+      { title: "Statutory Policies", href: "/payroll/policies", icon: ScrollText, permission: "payroll:read", context: "tenant" },
     ],
   },
   {

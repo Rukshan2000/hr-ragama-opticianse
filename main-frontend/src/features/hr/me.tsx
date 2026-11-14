@@ -166,7 +166,7 @@ function MyAttendance() {
       loading={q.isPending}
       error={q.error?.message}
       empty={<EmptyState title="No attendance yet" />}
-      footer={<Pagination meta={q.data?.meta} onPageChange={list.setPage} />}
+      footer={<Pagination meta={q.data?.meta} onPageChange={list.setPage} onLimitChange={list.setLimit} />}
     />
   );
 }

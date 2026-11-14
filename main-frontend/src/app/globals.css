@@ -130,4 +130,25 @@
   .org-tree > ul {
     padding-top: 0;
   }
+  /* Leaf children: a compact grid (a few columns, several rows) inside a group box instead of
+     one wide row. Column count comes from --cols, set per node. */
+  .org-tree ul.org-stack {
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 2), auto);
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    padding: 0.75rem;
+    border: 1px dashed var(--border-strong);
+    border-radius: 0.75rem;
+  }
+  .org-tree ul.org-stack::before {
+    top: calc(-1.25rem - 1px);
+  }
+  .org-tree ul.org-stack > li {
+    padding: 0;
+  }
+  .org-tree ul.org-stack > li::before,
+  .org-tree ul.org-stack > li::after {
+    display: none;
+  }
 }

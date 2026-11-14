@@ -27,7 +27,7 @@ const rating = z.number().min(1).max(5).multipleOf(0.5);
 
 /* ── Recruitment ── */
 const vacancyBody = z.object({
-  code,
+  code: code.optional(),
   title: name(150),
   description: z.string().trim().max(20000).nullish(),
   departmentId: z.uuid().nullish(),
@@ -40,6 +40,7 @@ const vacancyBody = z.object({
 });
 const vacancies = crudResource({
   table: 'vacancies',
+  codePrefix: 'VAC',
   label: 'Vacancy',
   tag: 'Talent',
   read: P.RECRUITMENT_READ,
@@ -278,7 +279,7 @@ const cycles = crudResource({
 
 /* ── Training ── */
 const programBody = z.object({
-  code,
+  code: code.optional(),
   title: name(150),
   description: text(2000),
   provider: text(150),
@@ -291,6 +292,7 @@ const programBody = z.object({
 });
 const programs = crudResource({
   table: 'training_programs',
+  codePrefix: 'TP',
   label: 'Training program',
   tag: 'Talent',
   read: P.TRAINING_READ,

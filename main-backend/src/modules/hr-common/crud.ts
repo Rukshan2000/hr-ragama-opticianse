@@ -13,6 +13,7 @@ import {
 } from '../../shared/utils/db-errors';
 import { likeTerm, paginate } from '../../shared/utils/pagination';
 import { sendSuccess } from '../../shared/utils/response';
+import { nextCode } from '../../shared/utils/next-code';
 import { requireTenantId, tenantScope } from '../../shared/utils/tenant-scope';
 import { requirePermissions } from '../auth/auth.guard';
 import { audit } from './audit';
@@ -73,6 +74,8 @@ export interface CrudConfig {
   /** Sensitive resources record create/update/delete in the audit log. */
   audited?: boolean;
   noDelete?: boolean;
+  /** Blank `code` on create is generated as "<PREFIX>-NNN"; also exposes GET <path>/next-code. */
+  codePrefix?: string;
 }
 
 /**
@@ -125,6 +128,9 @@ export function crudResource(cfg: CrudConfig) {
       const id = await dbGuard(cfg.label.toLowerCase(), () =>
         withTransaction(async (trx) => {
           const data = toSnake(input);
+          // ponytail: concurrent auto-codes can collide → 409 via unique index; user retries.
+          if (cfg.codePrefix && !data.code)
+            data.code = await nextCode(trx, cfg.table, tenantId, cfg.codePrefix);
           await cfg.beforeWrite?.({ auth, tenantId, trx }, data);
           const [row] = await trx(cfg.table)
             .insert({ ...data, tenant_id: tenantId })
@@ -201,6 +207,19 @@ export function crudResource(cfg: CrudConfig) {
         return sendSuccess(reply, items, { meta });
       }),
     );
+    if (cfg.codePrefix)
+      app.get(
+        `${path}/next-code`,
+        {
+          preHandler: manage,
+          schema: { tags, security, summary: `Suggest next ${cfg.label} code` },
+        },
+        h(async (req: Req, reply: FastifyReply) =>
+          sendSuccess(reply, {
+            code: await nextCode(db, cfg.table, requireTenantId(req.auth!), cfg.codePrefix!),
+          }),
+        ),
+      );
     app.get(
       `${path}/:id`,
       {

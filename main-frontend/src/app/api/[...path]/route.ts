@@ -9,7 +9,7 @@ import { ACCESS_COOKIE, REFRESH_COOKIE } from "@/lib/session";
  */
 const API_URL = (process.env.API_URL ?? "http://localhost:5050/api/v1").replace(/\/$/, "");
 const REFRESH_MAX_AGE = Number(process.env.REFRESH_COOKIE_MAX_AGE ?? 60 * 60 * 24 * 7);
-const TOKEN_ISSUING = new Set(["auth/login", "auth/register", "auth/switch-tenant", "auth/passkeys/login/verify", "auth/mfa/verify"]);
+const TOKEN_ISSUING = new Set(["auth/login", "auth/switch-tenant", "auth/passkeys/login/verify", "auth/mfa/verify"]);
 const BLOCKED = new Set(["auth/refresh"]); // rotation is handled here, never by the client
 
 interface Tokens {

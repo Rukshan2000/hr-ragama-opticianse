@@ -35,7 +35,7 @@ const page = {
 /* ── Master data via the CRUD factory ── */
 
 const shiftBody = z.object({
-  code,
+  code: code.optional(),
   name: name(100),
   startTime: time,
   endTime: time,
@@ -47,6 +47,7 @@ const shiftBody = z.object({
 });
 const shifts = crudResource({
   table: 'shifts',
+  codePrefix: 'SH',
   label: 'Shift',
   tag: 'Time & attendance',
   read: P.ORGANIZATION_READ,
@@ -145,7 +146,7 @@ const holidays = crudResource({
 });
 
 const leaveTypeBody = z.object({
-  code,
+  code: code.optional(),
   name: name(100),
   isPaid: z.boolean().default(true),
   allowHalfDay: z.boolean().default(true),
@@ -155,6 +156,7 @@ const leaveTypeBody = z.object({
 });
 const leaveTypes = crudResource({
   table: 'leave_types',
+  codePrefix: 'LT',
   label: 'Leave type',
   tag: 'Leave',
   read: P.SELF_SERVICE,

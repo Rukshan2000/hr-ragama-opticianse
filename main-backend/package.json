@@ -25,6 +25,7 @@
     "db:status": "tsx scripts/db.ts status",
     "db:seed": "tsx scripts/db.ts seed",
     "db:make": "tsx scripts/db.ts make",
+    "create:org": "tsx scripts/create-org.ts",
     "db:migrate:prod": "node dist/scripts/db.js migrate",
     "audit": "npm audit --omit=dev",
     "prepare": "husky || true"

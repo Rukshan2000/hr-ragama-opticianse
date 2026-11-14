@@ -1,5 +1,6 @@
 import { db, type DbExecutor } from '../../database/knex';
 import { likeTerm, paginate, type ListQuery } from '../../shared/utils/pagination';
+import { nextCode } from '../../shared/utils/next-code';
 import { tenantScope } from '../../shared/utils/tenant-scope';
 
 export type MasterTable = 'branches' | 'departments' | 'designations' | 'org_levels';
@@ -31,6 +32,8 @@ function master(table: MasterTable, searchCols: string[]) {
     findById(tenantId: string, id: string, executor: DbExecutor = db): Promise<Row | undefined> {
       return tenantScope(executor, table, tenantId).where({ id }).first();
     },
+
+    nextCode: (tenantId: string, prefix: string) => nextCode(db, table, tenantId, prefix),
 
     async insert(tenantId: string, data: Record<string, unknown>): Promise<Row> {
       const [row] = await db(table)

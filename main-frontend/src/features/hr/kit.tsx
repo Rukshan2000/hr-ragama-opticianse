@@ -2,21 +2,50 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, FileText, Loader2, Paperclip, Pencil, Plus, Power, Trash2, X, type LucideIcon } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import {
+  Download,
+  Eye,
+  FileText,
+  Loader2,
+  Sparkles,
+  Paperclip,
+  Pencil,
+  Plus,
+  Power,
+  Trash2,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { ActionDropdown, type ActionItem } from "@/components/shared/action-dropdown";
+import {
+  ActionDropdown,
+  type ActionItem,
+} from "@/components/shared/action-dropdown";
 import { ActiveBadge, StatusBadge } from "@/components/shared/badges";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { DataTable, FilterDropdown, Pagination, SearchInput, type Column } from "@/components/shared/data-table";
+import {
+  DataTable,
+  FilterDropdown,
+  Pagination,
+  SearchInput,
+  type Column,
+} from "@/components/shared/data-table";
 import { FormField } from "@/components/shared/form";
 import { PageContainer, PageHeader } from "@/components/shared/page";
 import { SelectField } from "@/components/shared/select-field";
 import { EmptyState } from "@/components/shared/states";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,34 +53,121 @@ import { FormAlert } from "@/features/auth/auth-card";
 import { EmployeePicker } from "@/features/employees/shared";
 import { useListState } from "@/hooks/use-list-state";
 import { useSession } from "@/hooks/use-session";
-import { api, applyFieldErrors, errorMessage, fileUrl, UPLOAD_ACCEPT, uploadFile } from "@/lib/api/client";
+import {
+  api,
+  applyFieldErrors,
+  errorMessage,
+  fileUrl,
+  UPLOAD_ACCEPT,
+  uploadFile,
+} from "@/lib/api/client";
 import type { Paginated } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 /* ── Formatting ─────────────────────────────────────────────── */
 
-const moneyFmt = new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-export const money = (v: unknown) => (v === null || v === undefined || v === "" ? "—" : moneyFmt.format(Number(v)));
-export const hours = (minutes: unknown) => (minutes ? `${Math.floor(Number(minutes) / 60)}h ${String(Number(minutes) % 60).padStart(2, "0")}m` : "—");
-export const time = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : "—");
-export const label = (s: string | null | undefined) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replaceAll("_", " ") : "—");
-export const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const moneyFmt = new Intl.NumberFormat(undefined, {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+export const money = (v: unknown) =>
+  v === null || v === undefined || v === "" ? "—" : moneyFmt.format(Number(v));
+export const hours = (minutes: unknown) =>
+  minutes
+    ? `${Math.floor(Number(minutes) / 60)}h ${String(Number(minutes) % 60).padStart(2, "0")}m`
+    : "—";
+export const time = (iso: string | null | undefined) =>
+  iso
+    ? new Date(iso).toLocaleTimeString(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "—";
+export const label = (s: string | null | undefined) =>
+  s ? s.charAt(0).toUpperCase() + s.slice(1).replaceAll("_", " ") : "—";
+export const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 
 type Tone = "success" | "warning" | "danger" | "info" | "neutral";
 const TONE: Record<string, Tone> = {
-  approved: "success", active: "success", completed: "success", present: "success", reimbursed: "success", hired: "success", open: "success", available: "success", locked: "info",
-  pending: "warning", draft: "neutral", calculated: "info", late: "warning", half_day: "warning", self_review: "warning", manager_review: "info", interview: "info", offered: "info", screening: "info", applied: "neutral", scheduled: "info", ongoing: "info", planned: "neutral", enrolled: "info", assigned: "info", maintenance: "warning", on_leave: "info", holiday: "neutral", off: "neutral",
-  rejected: "danger", cancelled: "neutral", absent: "danger", expired: "danger", terminated: "danger", failed: "danger", withdrawn: "neutral", closed: "neutral", filled: "success", retired: "neutral", renewed: "neutral", settled: "success",
+  approved: "success",
+  active: "success",
+  completed: "success",
+  present: "success",
+  reimbursed: "success",
+  hired: "success",
+  open: "success",
+  available: "success",
+  locked: "info",
+  pending: "warning",
+  draft: "neutral",
+  calculated: "info",
+  late: "warning",
+  half_day: "warning",
+  self_review: "warning",
+  manager_review: "info",
+  interview: "info",
+  offered: "info",
+  screening: "info",
+  applied: "neutral",
+  scheduled: "info",
+  ongoing: "info",
+  planned: "neutral",
+  enrolled: "info",
+  assigned: "info",
+  maintenance: "warning",
+  on_leave: "info",
+  holiday: "neutral",
+  off: "neutral",
+  rejected: "danger",
+  cancelled: "neutral",
+  absent: "danger",
+  expired: "danger",
+  terminated: "danger",
+  failed: "danger",
+  withdrawn: "neutral",
+  closed: "neutral",
+  filled: "success",
+  retired: "neutral",
+  renewed: "neutral",
+  settled: "success",
 };
 export function Status({ value }: { value: string | null | undefined }) {
   if (!value) return <span className="text-text-muted">—</span>;
-  return <StatusBadge tone={TONE[value] ?? "neutral"}>{label(value)}</StatusBadge>;
+  return (
+    <StatusBadge tone={TONE[value] ?? "neutral"}>{label(value)}</StatusBadge>
+  );
 }
 
-export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: readonly T[] | { value: T; label: string }[]; value: T; onChange: (t: T) => void }) {
-  const items = (tabs as (T | { value: T; label: string })[]).map((t) => (typeof t === "string" ? { value: t, label: t } : t));
+export function Tabs<T extends string>({
+  tabs,
+  value,
+  onChange,
+}: {
+  tabs: readonly T[] | { value: T; label: string }[];
+  value: T;
+  onChange: (t: T) => void;
+}) {
+  const items = (tabs as (T | { value: T; label: string })[]).map((t) =>
+    typeof t === "string" ? { value: t, label: t } : t,
+  );
   return (
-    <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-border-subtle">
+    <div
+      role="tablist"
+      className="flex gap-1 overflow-x-auto border-b border-border-subtle"
+    >
       {items.map((t) => (
         <button
           key={t.value}
@@ -60,7 +176,9 @@ export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: readon
           onClick={() => onChange(t.value)}
           className={cn(
             "-mb-px shrink-0 border-b-2 px-3 py-2 text-[13px] font-medium whitespace-nowrap transition-colors",
-            value === t.value ? "border-brand-accent text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
+            value === t.value
+              ? "border-brand-accent text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground",
           )}
         >
           {t.label}
@@ -75,14 +193,28 @@ export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: readon
 type Q = Record<string, string | number | boolean | undefined>;
 
 /** Options for a reference select, loaded from any list endpoint. */
-export function useOptions(path: string, toLabel: (r: Record<string, unknown>) => string, query: Q = {}, enabled = true) {
+export function useOptions(
+  path: string,
+  toLabel: (r: Record<string, unknown>) => string,
+  query: Q = {},
+  enabled = true,
+) {
   const q = useQuery({
     queryKey: [path.split("/")[0], "options", path, query],
-    queryFn: () => api.list<Record<string, unknown>>(path, { limit: 500, ...query }),
+    queryFn: () =>
+      // 100 = the strictest API page cap (roles, users, employees); larger lists 400 otherwise.
+      api.list<Record<string, unknown>>(path, { limit: 100, ...query }),
     enabled,
     staleTime: 30_000,
   });
-  return useMemo(() => (q.data?.items ?? []).map((r) => ({ value: String(r.id), label: toLabel(r) })), [q.data, toLabel]);
+  return useMemo(
+    () =>
+      (q.data?.items ?? []).map((r) => ({
+        value: String(r.id),
+        label: toLabel(r),
+      })),
+    [q.data, toLabel],
+  );
 }
 
 /* ── File upload control ────────────────────────────────────── */
@@ -117,33 +249,98 @@ export function FileField({
   };
   return (
     <div className="flex h-10 items-center gap-2 rounded-lg border bg-card px-2 text-sm">
-      <input ref={input} type="file" accept={accept} className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
+      <input
+        ref={input}
+        type="file"
+        accept={accept}
+        className="hidden"
+        onChange={(e) => pick(e.target.files?.[0])}
+      />
       {value ? (
         <>
           <FileText className="size-4 shrink-0 text-muted-foreground" />
-          <a href={fileUrl(value.id)} className="min-w-0 flex-1 truncate hover:underline">
+          <a
+            href={fileUrl(value.id)}
+            className="min-w-0 flex-1 truncate hover:underline"
+          >
             {value.name}
           </a>
-          <button type="button" aria-label="Remove file" onClick={() => onChange(null)} className="text-muted-foreground hover:text-foreground">
+          <button
+            type="button"
+            aria-label="Remove file"
+            onClick={() => onChange(null)}
+            className="text-muted-foreground hover:text-foreground"
+          >
             <X className="size-4" />
           </button>
         </>
       ) : (
-        <Button type="button" variant="ghost" size="sm" className="-ml-1" disabled={busy} onClick={() => input.current?.click()}>
-          {busy ? <Loader2 className="animate-spin" /> : <Paperclip />} {busy ? "Uploading…" : "Choose file (max 10 MB)"}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="-ml-1"
+          disabled={busy}
+          onClick={() => input.current?.click()}
+        >
+          {busy ? <Loader2 className="animate-spin" /> : <Paperclip />}{" "}
+          {busy ? "Uploading…" : "Choose file (max 10 MB)"}
         </Button>
       )}
     </div>
   );
 }
 
-export function FileLink({ id, name }: { id: string | null | undefined; name?: string | null }) {
-  if (!id) return <span className="text-text-muted">—</span>;
+const PREVIEWABLE = /\.(pdf|png|jpe?g|gif|webp|svg)$/i;
+
+/** In-app viewer for PDFs and images (served inline by the API). */
+export function FilePreview({ id, name, onClose }: { id: string | null; name?: string | null; onClose: () => void }) {
+  const isImage = /\.(png|jpe?g|gif|webp|svg)$/i.test(name ?? "");
   return (
-    <a href={fileUrl(id)} onClick={(e) => e.stopPropagation()} className="inline-flex max-w-48 items-center gap-1 text-[13px] text-brand-accent hover:underline">
-      <Download className="size-3.5 shrink-0" />
-      <span className="truncate">{name ?? "Download"}</span>
-    </a>
+    <Dialog open={Boolean(id)} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="flex h-[90vh] flex-col gap-3 sm:max-w-4xl">
+        <DialogHeader className="flex-row items-center justify-between gap-3 pr-8">
+          <DialogTitle className="truncate">{name ?? "Document"}</DialogTitle>
+          {id && (
+            <a href={fileUrl(id)} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "shrink-0")}>
+              <Download /> Download
+            </a>
+          )}
+        </DialogHeader>
+        {id &&
+          (isImage ? (
+            <div className="grid min-h-0 flex-1 place-items-center overflow-auto rounded-lg bg-muted/40">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={fileUrl(id, true)} alt={name ?? ""} className="max-h-full max-w-full object-contain" />
+            </div>
+          ) : (
+            <iframe src={fileUrl(id, true)} title={name ?? "Document preview"} className="min-h-0 w-full flex-1 rounded-lg border bg-white" />
+          ))}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function FileLink({ id, name, fileName }: { id: string | null | undefined; name?: string | null; fileName?: string | null }) {
+  const [open, setOpen] = useState(false);
+  if (!id) return <span className="text-text-muted">—</span>;
+  // Without a file name we can't tell the type; the server falls back to a download for others.
+  const canPreview = !fileName || PREVIEWABLE.test(fileName);
+  return (
+    <span className="inline-flex max-w-56 items-center gap-1" onClick={(e) => e.stopPropagation()}>
+      {canPreview ? (
+        <button type="button" onClick={() => setOpen(true)} className="inline-flex min-w-0 items-center gap-1 text-[13px] text-brand-accent hover:underline">
+          <Eye className="size-3.5 shrink-0" />
+          <span className="truncate">{name ?? "Preview"}</span>
+        </button>
+      ) : (
+        <span className="truncate text-[13px]">{name ?? "File"}</span>
+      )}
+      <a href={fileUrl(id)} title="Download" aria-label="Download" className="shrink-0 rounded p-1 text-muted-foreground hover:bg-subtle hover:text-foreground">
+        <Download className="size-3.5" />
+      </a>
+      {canPreview && <FilePreview id={open ? id : null} name={fileName ?? name} onClose={() => setOpen(false)} />}
+    </span>
   );
 }
 
@@ -152,13 +349,32 @@ export function FileLink({ id, name }: { id: string | null | undefined; name?: s
 export interface CrudField {
   name: string;
   label: string;
-  type?: "text" | "code" | "email" | "number" | "money" | "textarea" | "date" | "time" | "datetime" | "select" | "boolean" | "color" | "employee" | "ref" | "file";
+  type?:
+    | "text"
+    | "code"
+    | "email"
+    | "number"
+    | "money"
+    | "textarea"
+    | "date"
+    | "time"
+    | "datetime"
+    | "select"
+    | "boolean"
+    | "color"
+    | "employee"
+    | "ref"
+    | "file";
   required?: boolean;
   hint?: string;
   wide?: boolean;
   options?: { value: string; label: string }[];
   /** For type "ref": list endpoint and how to label rows. */
-  ref?: { path: string; label: (r: Record<string, unknown>) => string; query?: Q };
+  ref?: {
+    path: string;
+    label: (r: Record<string, unknown>) => string;
+    query?: Q;
+  };
   /** For type "file". */
   purpose?: string;
   default?: unknown;
@@ -173,7 +389,9 @@ export interface CrudField {
 const toLocalInput = (iso: unknown) => {
   if (!iso) return "";
   const d = new Date(String(iso));
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16);
 };
 
 function fieldSchema(f: CrudField) {
@@ -184,17 +402,35 @@ function fieldSchema(f: CrudField) {
       let n = z.coerce.number({ error: "Enter a number" });
       if (f.min !== undefined) n = n.min(f.min, `Must be ${f.min} or more`);
       if (f.max !== undefined) n = n.max(f.max, `Must be ${f.max} or less`);
-      return f.required ? n : z.union([z.literal(""), n]).optional().nullable();
+      return f.required
+        ? n
+        : z
+            .union([z.literal(""), n])
+            .optional()
+            .nullable();
     }
     case "boolean":
       return z.boolean();
     case "employee":
     case "file":
-      return f.required ? z.object({ id: z.string(), name: z.string().nullable() }, { error: `Choose ${f.label.toLowerCase()}` }) : z.any();
+      return f.required
+        ? z.object(
+            { id: z.string(), name: z.string().nullable() },
+            { error: `Choose ${f.label.toLowerCase()}` },
+          )
+        : z.any();
     case "email":
-      return f.required ? z.email("Enter a valid email") : z.union([z.literal(""), z.email("Enter a valid email")]).optional().nullable();
+      return f.required
+        ? z.email("Enter a valid email")
+        : z
+            .union([z.literal(""), z.email("Enter a valid email")])
+            .optional()
+            .nullable();
     default: {
-      const s = z.string().trim().max(f.type === "textarea" ? 20000 : 300);
+      const s = z
+        .string()
+        .trim()
+        .max(f.type === "textarea" ? 20000 : 300);
       return f.required ? s.min(1, `Enter ${f.label.toLowerCase()}`) : req(s);
     }
   }
@@ -206,72 +442,210 @@ function initialValue(f: CrudField, row: Record<string, unknown> | null) {
     case "boolean":
       return row ? Boolean(v) : ((f.default as boolean) ?? false);
     case "employee":
-      return row && v ? { id: String(v), name: String(row[f.display ?? "employeeName"] ?? "") } : null;
+      return row && v
+        ? {
+            id: String(v),
+            name: String(row[f.display ?? "employeeName"] ?? ""),
+          }
+        : null;
     case "file":
-      return row && v ? { id: String(v), name: String(row[f.display ?? "fileName"] ?? "File") } : null;
+      return row && v
+        ? {
+            id: String(v),
+            name: String(row[f.display ?? "fileName"] ?? "File"),
+          }
+        : null;
     case "datetime":
       return toLocalInput(v);
     case "time":
       return v ? String(v).slice(0, 5) : ((f.default as string) ?? "");
     default:
-      return v === null || v === undefined ? (f.default ?? "") : typeof v === "number" ? String(v) : v;
+      return v === null || v === undefined
+        ? (f.default ?? "")
+        : typeof v === "number"
+          ? String(v)
+          : v;
   }
 }
 
-function toPayload(fields: CrudField[], values: Record<string, unknown>, editing: boolean) {
+function toPayload(
+  fields: CrudField[],
+  values: Record<string, unknown>,
+  editing: boolean,
+) {
   const out: Record<string, unknown> = {};
   for (const f of fields) {
     if (editing && f.createOnly) continue;
     const v = values[f.name];
-    if (f.type === "employee" || f.type === "file") out[f.name] = (v as { id: string } | null)?.id ?? null;
-    else if (f.type === "number" || f.type === "money") out[f.name] = v === "" || v === null || v === undefined ? null : Number(v);
-    else if (f.type === "datetime") out[f.name] = v ? new Date(String(v)).toISOString() : null;
+    if (f.type === "employee" || f.type === "file")
+      out[f.name] = (v as { id: string } | null)?.id ?? null;
+    else if (f.type === "number" || f.type === "money")
+      out[f.name] =
+        v === "" || v === null || v === undefined ? null : Number(v);
+    else if (f.type === "datetime")
+      out[f.name] = v ? new Date(String(v)).toISOString() : null;
     else if (f.type === "boolean") out[f.name] = Boolean(v);
     else out[f.name] = v === "" || v === undefined ? null : v;
   }
   // Optional nulls are omitted on create so server defaults apply.
-  if (!editing) for (const k of Object.keys(out)) if (out[k] === null && !fields.find((f) => f.name === k)?.required) delete out[k];
+  if (!editing)
+    for (const k of Object.keys(out))
+      if (out[k] === null && !fields.find((f) => f.name === k)?.required)
+        delete out[k];
   return out;
 }
 
-function RefSelect({ field, value, onChange, aria }: { field: CrudField; value: string | null; onChange: (v: string | null) => void; aria: object }) {
+function RefSelect({
+  field,
+  value,
+  onChange,
+  aria,
+}: {
+  field: CrudField;
+  value: string | null;
+  onChange: (v: string | null) => void;
+  aria: object;
+}) {
   const opts = useOptions(field.ref!.path, field.ref!.label, field.ref!.query);
-  return <SelectField {...aria} value={value} onChange={onChange} options={opts} noneLabel={field.required ? undefined : "None"} />;
+  return (
+    <SelectField
+      {...aria}
+      value={value}
+      onChange={onChange}
+      options={opts}
+      noneLabel={field.required ? undefined : "None"}
+    />
+  );
 }
 
-export function FieldControl({ field: f, control, register, p, employeeId }: { field: CrudField; control: ReturnType<typeof useForm<Record<string, unknown>>>["control"]; register: ReturnType<typeof useForm<Record<string, unknown>>>["register"]; p: { id: string; "aria-invalid": boolean; "aria-describedby"?: string }; employeeId?: string }) {
-  const ctl = (render: (v: unknown, set: (x: unknown) => void) => React.ReactNode) => <Controller control={control} name={f.name} render={({ field }) => <>{render(field.value, field.onChange)}</>} />;
+export function FieldControl({
+  field: f,
+  control,
+  register,
+  p,
+  employeeId,
+  onGenerate,
+  generating,
+}: {
+  onGenerate?: () => void;
+  generating?: boolean;
+  field: CrudField;
+  control: ReturnType<typeof useForm<Record<string, unknown>>>["control"];
+  register: ReturnType<typeof useForm<Record<string, unknown>>>["register"];
+  p: { id: string; "aria-invalid": boolean; "aria-describedby"?: string };
+  employeeId?: string;
+}) {
+  const ctl = (
+    render: (v: unknown, set: (x: unknown) => void) => React.ReactNode,
+  ) => (
+    <Controller
+      control={control}
+      name={f.name}
+      render={({ field }) => <>{render(field.value, field.onChange)}</>}
+    />
+  );
   switch (f.type) {
     case "textarea":
       return <Textarea {...p} rows={3} {...register(f.name)} />;
     case "select":
-      return ctl((v, set) => <SelectField {...p} value={(v as string) || null} onChange={(x) => set(x ?? "")} options={f.options ?? []} noneLabel={f.required ? undefined : "None"} />);
+      return ctl((v, set) => (
+        <SelectField
+          {...p}
+          value={(v as string) || null}
+          onChange={(x) => set(x ?? "")}
+          options={f.options ?? []}
+          noneLabel={f.required ? undefined : "None"}
+        />
+      ));
     case "ref":
-      return ctl((v, set) => <RefSelect field={f} aria={p} value={(v as string) || null} onChange={(x) => set(x ?? "")} />);
+      return ctl((v, set) => (
+        <RefSelect
+          field={f}
+          aria={p}
+          value={(v as string) || null}
+          onChange={(x) => set(x ?? "")}
+        />
+      ));
     case "boolean":
       return ctl((v, set) => (
         <div className="flex h-10 items-center">
-          <Switch id={p.id} checked={Boolean(v)} onCheckedChange={(c) => set(c)} />
+          <Switch
+            id={p.id}
+            checked={Boolean(v)}
+            onCheckedChange={(c) => set(c)}
+          />
         </div>
       ));
     case "employee":
-      return ctl((v, set) => <EmployeePicker {...p} value={v as { id: string; name: string } | null} onChange={set} />);
+      return ctl((v, set) => (
+        <EmployeePicker
+          {...p}
+          value={v as { id: string; name: string } | null}
+          onChange={set}
+        />
+      ));
     case "file":
-      return ctl((v, set) => <FileField value={v as { id: string; name: string } | null} onChange={set} purpose={f.purpose ?? "document"} employeeId={employeeId} />);
+      return ctl((v, set) => (
+        <FileField
+          value={v as { id: string; name: string } | null}
+          onChange={set}
+          purpose={f.purpose ?? "document"}
+          employeeId={employeeId}
+        />
+      ));
     case "color":
-      return <Input {...p} type="color" className="h-10 w-20 p-1" {...register(f.name)} />;
-    default:
       return (
         <Input
           {...p}
-          type={{ number: "number", money: "number", email: "email", date: "date", time: "time", datetime: "datetime-local" }[f.type as string] ?? "text"}
-          step={f.step ?? (f.type === "money" ? "0.01" : undefined)}
-          min={f.min}
-          max={f.max}
-          className={f.type === "code" ? "font-mono uppercase" : undefined}
+          type="color"
+          className="h-10 w-20 p-1"
           {...register(f.name)}
         />
       );
+    default: {
+      const input = (
+        <Input
+          {...p}
+          type={
+            {
+              number: "number",
+              money: "number",
+              email: "email",
+              date: "date",
+              time: "time",
+              datetime: "datetime-local",
+            }[f.type as string] ?? "text"
+          }
+          step={f.step ?? (f.type === "money" ? "0.01" : undefined)}
+          min={f.min}
+          max={f.max}
+          className={cn(
+            f.type === "code" && "font-mono uppercase",
+            onGenerate && "pr-11",
+          )}
+          placeholder={onGenerate ? "Auto" : undefined}
+          {...register(f.name)}
+        />
+      );
+      if (!onGenerate) return input;
+      return (
+        <div className="relative">
+          {input}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            title="Generate code"
+            aria-label="Generate code"
+            disabled={generating}
+            onClick={onGenerate}
+            className="absolute top-1/2 right-1.5 -translate-y-1/2 text-primary hover:bg-primary/10"
+          >
+            {generating ? <Loader2 className="animate-spin" /> : <Sparkles />}
+          </Button>
+        </div>
+      );
+    }
   }
 }
 
@@ -287,7 +661,10 @@ export function CrudDialog({
   onSubmit,
   submitLabel = "Save",
   employeeId,
+  codePath,
 }: {
+  /** Resource path; enables auto/generate on "code" fields via `<path>/next-code`. */
+  codePath?: string;
   title: string;
   description?: string;
   fields: CrudField[];
@@ -298,14 +675,55 @@ export function CrudDialog({
   submitLabel?: string;
   employeeId?: string;
 }) {
-  const visible = fields.filter((f) => !(row && f.createOnly));
+  const visible = fields
+    .filter((f) => !(row && f.createOnly))
+    // Creating: code may be left blank, the server generates it.
+    .map((f) =>
+      codePath && !row && f.type === "code"
+        ? {
+            ...f,
+            required: false,
+            hint: f.hint ?? "Leave blank to auto-generate",
+          }
+        : f,
+    );
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const schema = useMemo(() => z.object(Object.fromEntries(visible.map((f) => [f.name, fieldSchema(f)])) as Record<string, z.ZodType>), [visible]);
+  const schema = useMemo(
+    () =>
+      z.object(
+        Object.fromEntries(
+          visible.map((f) => [f.name, fieldSchema(f)]),
+        ) as Record<string, z.ZodType>,
+      ),
+    [visible],
+  );
   const form = useForm<Record<string, unknown>>({
     resolver: zodResolver(schema),
-    values: Object.fromEntries(visible.map((f) => [f.name, initialValue(f, row)])),
+    values: Object.fromEntries(
+      visible.map((f) => [f.name, initialValue(f, row)]),
+    ),
   });
   const { errors, isSubmitting } = form.formState;
+  // `values` only resyncs when defaults change, so "new" after "new" kept the old input.
+  useEffect(() => {
+    if (open)
+      form.reset(
+        Object.fromEntries(visible.map((f) => [f.name, initialValue(f, row)])),
+      );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, row]);
+  const generate = async (name: string) => {
+    setGenerating(true);
+    try {
+      const { code } = await api.get<{ code: string }>(`${codePath}/next-code`);
+      form.setValue(name, code, { shouldValidate: true, shouldDirty: true });
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setGenerating(false);
+    }
+  };
   const close = (o: boolean) => {
     if (!o) setError(null);
     onOpenChange(o);
@@ -326,7 +744,12 @@ export function CrudDialog({
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
-        <form id="crud-form" onSubmit={submit} className="grid gap-4 sm:grid-cols-2" noValidate>
+        <form
+          id="crud-form"
+          onSubmit={submit}
+          className="grid gap-4 sm:grid-cols-2"
+          noValidate
+        >
           {error && (
             <div className="sm:col-span-2">
               <FormAlert>{error}</FormAlert>
@@ -335,12 +758,37 @@ export function CrudDialog({
           {visible.map((f) => (
             <FormField
               key={f.name}
-              label={f.required || f.type === "boolean" ? f.label : `${f.label} (optional)`}
+              label={
+                f.required || f.type === "boolean"
+                  ? f.label
+                  : `${f.label} (${codePath && !row && f.type === "code" ? "auto" : "optional"})`
+              }
               hint={f.hint}
               error={errors[f.name]?.message as string | undefined}
-              className={f.wide || f.type === "textarea" || f.type === "employee" || f.type === "file" ? "sm:col-span-2" : undefined}
+              className={
+                f.wide ||
+                f.type === "textarea" ||
+                f.type === "employee" ||
+                f.type === "file"
+                  ? "sm:col-span-2"
+                  : undefined
+              }
             >
-              {(p) => <FieldControl field={f} control={form.control} register={form.register} p={p} employeeId={employeeId} />}
+              {(p) => (
+                <FieldControl
+                  field={f}
+                  control={form.control}
+                  register={form.register}
+                  p={p}
+                  employeeId={employeeId}
+                  onGenerate={
+                    codePath && f.type === "code"
+                      ? () => generate(f.name)
+                      : undefined
+                  }
+                  generating={generating}
+                />
+              )}
             </FormField>
           ))}
         </form>
@@ -373,7 +821,11 @@ export interface CrudConfig {
   managePermission: string;
   fields: CrudField[];
   columns: Column<Row>[];
-  filters?: { key: string; label: string; options: { value: string; label: string }[] }[];
+  filters?: {
+    key: string;
+    label: string;
+    options: { value: string; label: string }[];
+  }[];
   hasActive?: boolean;
   defaultSort: { sort: string; order: "asc" | "desc" };
   deleteHint?: string;
@@ -385,29 +837,51 @@ export interface CrudConfig {
   onRowClick?: (row: Row) => void;
   /** Adapts a row before it fills the form, and the form payload before it is sent. */
   fromRow?: (row: Row) => Row;
-  toBody?: (payload: Record<string, unknown>, editing: boolean) => Record<string, unknown>;
+  toBody?: (
+    payload: Record<string, unknown>,
+    editing: boolean,
+  ) => Record<string, unknown>;
 }
 
-export function CrudPage({ config, embedded }: { config: CrudConfig; embedded?: boolean }) {
+export function CrudPage({
+  config,
+  embedded,
+}: {
+  config: CrudConfig;
+  embedded?: boolean;
+}) {
   const { can } = useSession();
   const canManage = can(config.managePermission);
   const qc = useQueryClient();
   const list = useListState(config.defaultSort);
   const [filters, setFilters] = useState<Record<string, string>>({});
-  const [dialog, setDialog] = useState<{ open: boolean; row: Row | null }>({ open: false, row: null });
+  const [dialog, setDialog] = useState<{ open: boolean; row: Row | null }>({
+    open: false,
+    row: null,
+  });
   const [removing, setRemoving] = useState<Row | null>(null);
 
-  const params: Q = { ...list.params, ...config.query, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== "all")) };
+  const params: Q = {
+    ...list.params,
+    ...config.query,
+    ...Object.fromEntries(
+      Object.entries(filters).filter(([, v]) => v !== "all"),
+    ),
+  };
   const query = useQuery({
     queryKey: [config.queryKey, "list", params],
-    queryFn: () => api.list<Row>(config.path, params) as Promise<Paginated<Row>>,
+    queryFn: () =>
+      api.list<Row>(config.path, params) as Promise<Paginated<Row>>,
     placeholderData: (p) => p,
   });
   const refresh = () => qc.invalidateQueries({ queryKey: [config.queryKey] });
   const toggle = useMutation({
-    mutationFn: (r: Row) => api.patch(`${config.path}/${r.id}`, { isActive: !r.isActive }),
+    mutationFn: (r: Row) =>
+      api.patch(`${config.path}/${r.id}`, { isActive: !r.isActive }),
     onSuccess: (_, r) => {
-      toast.success(`${config.singular} ${r.isActive ? "deactivated" : "activated"}`);
+      toast.success(
+        `${config.singular} ${r.isActive ? "deactivated" : "activated"}`,
+      );
       refresh();
     },
     onError: (e) => toast.error(errorMessage(e)),
@@ -424,7 +898,15 @@ export function CrudPage({ config, embedded }: { config: CrudConfig; embedded?: 
 
   const columns: Column<Row>[] = [
     ...config.columns,
-    ...(config.hasActive ? [{ key: "active", header: "Status", cell: (r: Row) => <ActiveBadge active={Boolean(r.isActive)} /> }] : []),
+    ...(config.hasActive
+      ? [
+          {
+            key: "active",
+            header: "Status",
+            cell: (r: Row) => <ActiveBadge active={Boolean(r.isActive)} />,
+          },
+        ]
+      : []),
     {
       key: "actions",
       header: "",
@@ -434,16 +916,34 @@ export function CrudPage({ config, embedded }: { config: CrudConfig; embedded?: 
           <ActionDropdown
             items={[
               ...(config.rowActions?.(r, refresh) ?? []),
-              { label: "Edit", icon: Pencil, hidden: !canManage || config.noEdit, onSelect: () => setDialog({ open: true, row: r }) },
-              { label: r.isActive ? "Deactivate" : "Activate", icon: Power, hidden: !canManage || !config.hasActive, onSelect: () => toggle.mutate(r) },
-              { label: "Delete", icon: Trash2, destructive: true, hidden: !canManage || config.noDelete, onSelect: () => setRemoving(r) },
+              {
+                label: "Edit",
+                icon: Pencil,
+                hidden: !canManage || config.noEdit,
+                onSelect: () => setDialog({ open: true, row: r }),
+              },
+              {
+                label: r.isActive ? "Deactivate" : "Activate",
+                icon: Power,
+                hidden: !canManage || !config.hasActive,
+                onSelect: () => toggle.mutate(r),
+              },
+              {
+                label: "Delete",
+                icon: Trash2,
+                destructive: true,
+                hidden: !canManage || config.noDelete,
+                onSelect: () => setRemoving(r),
+              },
             ]}
           />
         </div>
       ),
     },
   ];
-  const filtered = Boolean(list.params.search) || Object.values(filters).some((v) => v && v !== "all");
+  const filtered =
+    Boolean(list.params.search) ||
+    Object.values(filters).some((v) => v && v !== "all");
 
   const body = (
     <>
@@ -456,10 +956,19 @@ export function CrudPage({ config, embedded }: { config: CrudConfig; embedded?: 
         onRetry={() => query.refetch()}
         sort={list.sort}
         onSortChange={list.setSort}
-        onRowClick={config.onRowClick ?? (canManage && !config.noEdit ? (r) => setDialog({ open: true, row: r }) : undefined)}
+        onRowClick={
+          config.onRowClick ??
+          (canManage && !config.noEdit
+            ? (r) => setDialog({ open: true, row: r })
+            : undefined)
+        }
         toolbar={
           <>
-            <SearchInput value={list.search} onChange={list.setSearch} placeholder={`Search ${config.title.toLowerCase()}`} />
+            <SearchInput
+              value={list.search}
+              onChange={list.setSearch}
+              placeholder={`Search ${config.title.toLowerCase()}`}
+            />
             {config.filters?.map((f) => (
               <FilterDropdown
                 key={f.key}
@@ -489,25 +998,52 @@ export function CrudPage({ config, embedded }: { config: CrudConfig; embedded?: 
         empty={
           <EmptyState
             icon={config.icon}
-            title={filtered ? `No ${config.title.toLowerCase()} match your filters` : `No ${config.title.toLowerCase()} yet`}
-            description={filtered ? "Try a different search or filter." : canManage ? `Create the first ${config.singular.toLowerCase()}.` : undefined}
+            title={
+              filtered
+                ? `No ${config.title.toLowerCase()} match your filters`
+                : `No ${config.title.toLowerCase()} yet`
+            }
+            description={
+              filtered
+                ? "Try a different search or filter."
+                : canManage
+                  ? `Create the first ${config.singular.toLowerCase()}.`
+                  : undefined
+            }
           />
         }
-        footer={<Pagination meta={query.data?.meta} onPageChange={list.setPage} />}
+        footer={
+          <Pagination meta={query.data?.meta} onPageChange={list.setPage} onLimitChange={list.setLimit} />
+        }
       />
       <CrudDialog
-        title={dialog.row ? `Edit ${config.singular.toLowerCase()}` : `New ${config.singular.toLowerCase()}`}
+        title={
+          dialog.row
+            ? `Edit ${config.singular.toLowerCase()}`
+            : `New ${config.singular.toLowerCase()}`
+        }
         description={config.description}
         fields={config.fields}
-        row={dialog.row && config.fromRow ? config.fromRow(dialog.row) : dialog.row}
+        codePath={config.path}
+        row={
+          dialog.row && config.fromRow ? config.fromRow(dialog.row) : dialog.row
+        }
         open={dialog.open}
         onOpenChange={(o) => setDialog((d) => ({ ...d, open: o }))}
-        submitLabel={dialog.row ? "Save changes" : `Create ${config.singular.toLowerCase()}`}
+        submitLabel={
+          dialog.row
+            ? "Save changes"
+            : `Create ${config.singular.toLowerCase()}`
+        }
         onSubmit={async (raw) => {
-          const b = config.toBody ? config.toBody(raw, Boolean(dialog.row)) : raw;
+          const b = config.toBody
+            ? config.toBody(raw, Boolean(dialog.row))
+            : raw;
           if (dialog.row) await api.patch(`${config.path}/${dialog.row.id}`, b);
           else await api.post(config.path, b);
-          toast.success(`${config.singular} ${dialog.row ? "updated" : "created"}`);
+          toast.success(
+            `${config.singular} ${dialog.row ? "updated" : "created"}`,
+          );
           refresh();
         }}
       />
@@ -515,7 +1051,10 @@ export function CrudPage({ config, embedded }: { config: CrudConfig; embedded?: 
         open={Boolean(removing)}
         onOpenChange={(o) => !o && setRemoving(null)}
         title={`Delete ${config.singular.toLowerCase()}?`}
-        description={config.deleteHint ?? "This can’t be undone. Records still in use cannot be deleted; deactivate them instead."}
+        description={
+          config.deleteHint ??
+          "This can’t be undone. Records still in use cannot be deleted; deactivate them instead."
+        }
         confirmLabel="Delete"
         destructive
         pending={remove.isPending}
@@ -532,7 +1071,9 @@ export function CrudPage({ config, embedded }: { config: CrudConfig; embedded?: 
     return (
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[13px] text-muted-foreground">{config.description}</p>
+          <p className="text-[13px] text-muted-foreground">
+            {config.description}
+          </p>
           <div className="flex gap-2">
             {config.headerActions}
             {newButton}
@@ -561,26 +1102,63 @@ export function CrudPage({ config, embedded }: { config: CrudConfig; embedded?: 
 /* ── Small shared columns ───────────────────────────────────── */
 
 export const col = {
-  code: (key = "code"): Column<Row> => ({ key, header: "Code", sortKey: key, className: "w-28", cell: (r) => <span className="font-mono text-xs text-muted-foreground">{String(r[key] ?? "")}</span> }),
-  text: (key: string, header: string, opts: Partial<Column<Row>> = {}): Column<Row> => ({ key, header, cell: (r) => <span className="text-[13px]">{(r[key] as string) ?? "—"}</span>, ...opts }),
-  main: (key: string, header: string, sub?: string, sortKey?: string): Column<Row> => ({
+  code: (key = "code"): Column<Row> => ({
+    key,
+    header: "Code",
+    sortKey: key,
+    className: "w-28",
+    cell: (r) => (
+      <span className="font-mono text-xs text-muted-foreground">
+        {String(r[key] ?? "")}
+      </span>
+    ),
+  }),
+  text: (
+    key: string,
+    header: string,
+    opts: Partial<Column<Row>> = {},
+  ): Column<Row> => ({
+    key,
+    header,
+    cell: (r) => (
+      <span className="text-[13px]">{(r[key] as string) ?? "—"}</span>
+    ),
+    ...opts,
+  }),
+  main: (
+    key: string,
+    header: string,
+    sub?: string,
+    sortKey?: string,
+  ): Column<Row> => ({
     key,
     header,
     sortKey,
     cell: (r) => (
       <div className="min-w-0">
         <p className="truncate font-medium">{String(r[key] ?? "—")}</p>
-        {sub && r[sub] ? <p className="truncate text-xs text-muted-foreground">{String(r[sub])}</p> : null}
+        {sub && r[sub] ? (
+          <p className="truncate text-xs text-muted-foreground">
+            {String(r[sub])}
+          </p>
+        ) : null}
       </div>
     ),
   }),
-  employee: (name = "employeeName", number = "employeeNumber"): Column<Row> => ({
+  employee: (
+    name = "employeeName",
+    number = "employeeNumber",
+  ): Column<Row> => ({
     key: name,
     header: "Employee",
     cell: (r) => (
       <div className="min-w-0">
         <p className="truncate font-medium">{String(r[name] ?? "—")}</p>
-        {r[number] ? <p className="font-mono text-xs text-muted-foreground">{String(r[number])}</p> : null}
+        {r[number] ? (
+          <p className="font-mono text-xs text-muted-foreground">
+            {String(r[number])}
+          </p>
+        ) : null}
       </div>
     ),
   }),
@@ -589,12 +1167,49 @@ export const col = {
     header,
     sortKey,
     hideBelow: "md",
-    cell: (r) => <span className="text-[13px] text-muted-foreground tabular-nums">{r[key] ? new Date(`${String(r[key]).slice(0, 10)}T00:00:00`).toLocaleDateString(undefined, { dateStyle: "medium" }) : "—"}</span>,
+    cell: (r) => (
+      <span className="text-[13px] text-muted-foreground tabular-nums">
+        {r[key]
+          ? new Date(
+              `${String(r[key]).slice(0, 10)}T00:00:00`,
+            ).toLocaleDateString(undefined, { dateStyle: "medium" })
+          : "—"}
+      </span>
+    ),
   }),
-  money: (key: string, header: string): Column<Row> => ({ key, header, className: "text-right", cell: (r) => <span className="tabular-nums">{money(r[key])}</span> }),
-  status: (key = "status", header = "Status"): Column<Row> => ({ key, header, cell: (r) => <Status value={r[key] as string} /> }),
-  bool: (key: string, header: string): Column<Row> => ({ key, header, hideBelow: "md", cell: (r) => <span className="text-[13px] text-muted-foreground">{r[key] ? "Yes" : "No"}</span> }),
-  color: (key = "color"): Column<Row> => ({ key, header: "", className: "w-8", cell: (r) => <span className="block size-3 rounded-full border" style={{ background: (r[key] as string) ?? "transparent" }} /> }),
+  money: (key: string, header: string): Column<Row> => ({
+    key,
+    header,
+    className: "text-right",
+    cell: (r) => <span className="tabular-nums">{money(r[key])}</span>,
+  }),
+  status: (key = "status", header = "Status"): Column<Row> => ({
+    key,
+    header,
+    cell: (r) => <Status value={r[key] as string} />,
+  }),
+  bool: (key: string, header: string): Column<Row> => ({
+    key,
+    header,
+    hideBelow: "md",
+    cell: (r) => (
+      <span className="text-[13px] text-muted-foreground">
+        {r[key] ? "Yes" : "No"}
+      </span>
+    ),
+  }),
+  color: (key = "color"): Column<Row> => ({
+    key,
+    header: "",
+    className: "w-8",
+    cell: (r) => (
+      <span
+        className="block size-3 rounded-full border"
+        style={{ background: (r[key] as string) ?? "transparent" }}
+      />
+    ),
+  }),
 };
 
-export const opts = (values: readonly string[]) => values.map((v) => ({ value: v, label: label(v) }));
+export const opts = (values: readonly string[]) =>
+  values.map((v) => ({ value: v, label: label(v) }));

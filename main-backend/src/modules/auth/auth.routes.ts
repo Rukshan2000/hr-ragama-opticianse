@@ -15,14 +15,17 @@ const strict = { rateLimit: { max: env.AUTH_RATE_LIMIT_MAX, timeWindow: '1 minut
 export const authRoutes: FastifyPluginAsyncZod = async (app) => {
   await app.register(passkeyRoutes, { prefix: '/passkeys' });
   await app.register(mfaRoutes, { prefix: '/mfa' });
-  app.post(
-    '/register',
-    {
-      config: strict,
-      schema: { tags, summary: 'Register user and organization', body: s.registerBody },
-    },
-    c.register,
-  );
+  // Self sign-up is disabled; accounts are created by admins. Kept only for the test suite's fixtures.
+  if (env.NODE_ENV === 'test') {
+    app.post(
+      '/register',
+      {
+        config: strict,
+        schema: { tags, summary: 'Register user and organization', body: s.registerBody },
+      },
+      c.register,
+    );
+  }
   app.post(
     '/login',
     { config: strict, schema: { tags, summary: 'Log in', body: s.loginBody } },

@@ -93,10 +93,15 @@ export const filesRoutes: FastifyPluginAsyncZod = async (app) => {
           search: z.string().trim().min(1).max(100).optional(),
           category: z.enum(DOCUMENT_CATEGORIES).optional(),
           expiringWithinDays: z.coerce.number().int().min(0).max(3650).optional(),
+          page: z.coerce.number().int().min(1).default(1),
+          limit: z.coerce.number().int().min(1).max(100).default(20),
         }),
       },
     },
-    async (req, reply) => sendSuccess(reply, await documentsService.listAll(req.auth!, req.query)),
+    async (req, reply) => {
+      const { items, meta } = await documentsService.listAll(req.auth!, req.query);
+      return sendSuccess(reply, items, { meta });
+    },
   );
   app.get(
     '/employees/:id/documents',

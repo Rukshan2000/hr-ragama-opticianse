@@ -130,7 +130,7 @@ export function TenantsPage() {
           </>
         }
         empty={<EmptyState icon={Building2} title={list.params.search || status !== "all" ? "No tenants match your filters" : "No tenants yet"} />}
-        footer={<Pagination meta={tenants.data?.meta} onPageChange={list.setPage} />}
+        footer={<Pagination meta={tenants.data?.meta} onPageChange={list.setPage} onLimitChange={list.setLimit} />}
       />
       <CreateTenantDialog open={creating} onOpenChange={setCreating} />
       <TenantSheet tenant={viewing} onOpenChange={(o) => !o && setViewing(null)} />

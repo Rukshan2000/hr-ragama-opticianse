@@ -231,7 +231,7 @@ export function ClaimsList({ mine }: { mine?: boolean }) {
           </>
         }
         empty={<EmptyState icon={Receipt} title="No expense claims" />}
-        footer={<Pagination meta={q.data?.meta} onPageChange={list.setPage} />}
+        footer={<Pagination meta={q.data?.meta} onPageChange={list.setPage} onLimitChange={list.setLimit} />}
       />
       {create && <NewClaimDialog onClose={() => setCreate(false)} onBehalf={!mine && can("expenses:manage")} />}
       {open && <ClaimDetail id={open} onClose={() => setOpen(null)} />}

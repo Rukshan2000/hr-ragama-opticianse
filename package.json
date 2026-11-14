@@ -1,0 +1,8 @@
+{
+  "name": "hr-ragama",
+  "private": true,
+  "scripts": {
+    "dev": "./dev.sh",
+    "create:org": "npm --prefix main-backend run create:org"
+  }
+}

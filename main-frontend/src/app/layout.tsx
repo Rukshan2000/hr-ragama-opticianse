@@ -20,7 +20,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* Palette from src/config/colors.json, emitted as CSS variables. */}
         <style dangerouslySetInnerHTML={{ __html: themeCss }} />
       </head>
-      <body className="min-h-full bg-background text-foreground">
+      <body className="min-h-full bg-background text-foreground" suppressHydrationWarning>
         <AppProviders>{children}</AppProviders>
       </body>
     </html>
