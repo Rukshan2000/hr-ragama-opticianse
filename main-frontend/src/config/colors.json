@@ -1,13 +1,13 @@
 {
   "light": {
-    "brand": { "primary": "#E8711C", "secondary": "#1C1917", "accent": "#C2570C" },
+    "brand": { "primary": "#DC2626", "secondary": "#1C1917", "accent": "#B91C1C" },
     "background": { "app": "#FAF8F6", "surface": "#FFFFFF", "subtle": "#F5EFE9", "sidebar": "#FFFFFF" },
     "text": { "primary": "#1C1917", "secondary": "#6B625B", "muted": "#A0968E", "inverse": "#FFFFFF" },
     "border": { "default": "#ECE5DE", "subtle": "#F3EEE9", "strong": "#D9CFC6" },
     "status": { "success": "#16865D", "warning": "#C98A12", "danger": "#D64545", "info": "#3478C8" }
   },
   "dark": {
-    "brand": { "primary": "#F28B3C", "secondary": "#F5F0EB", "accent": "#F7A35F" },
+    "brand": { "primary": "#EF4444", "secondary": "#F5F0EB", "accent": "#F87171" },
     "background": { "app": "#12100E", "surface": "#1B1815", "subtle": "#25211D", "sidebar": "#161310" },
     "text": { "primary": "#F3EEE9", "secondary": "#B3A89E", "muted": "#7D736A", "inverse": "#12100E" },
     "border": { "default": "#2E2924", "subtle": "#25211D", "strong": "#3D3630" },

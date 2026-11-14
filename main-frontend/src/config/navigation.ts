@@ -51,7 +51,7 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "Ragama Opticians HRM";
+export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "Invoteam HRM";
 
 export const navigation: NavGroup[] = [
   {

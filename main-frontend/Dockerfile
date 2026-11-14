@@ -4,7 +4,7 @@ COPY package*.json ./
 RUN npm ci
 COPY . .
 # NEXT_PUBLIC_* values are compiled into the client bundle at build time.
-ARG NEXT_PUBLIC_APP_NAME="Ragama Opticians HRM"
+ARG NEXT_PUBLIC_APP_NAME="Invoteam HRM"
 ARG NEXT_PUBLIC_TENANCY_MODE=single
 ENV NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME NEXT_PUBLIC_TENANCY_MODE=$NEXT_PUBLIC_TENANCY_MODE
 RUN npm run build

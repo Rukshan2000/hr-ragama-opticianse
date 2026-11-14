@@ -1,4 +1,4 @@
-# Production stack for hrm.ragamaopticians.com. Secrets live in deploy/.env and
+# Production stack for invoteam.kwingsmedia.com. Secrets live in deploy/.env and
 # main-backend/.env.production on the server (never committed).
 name: hrm-ragama-opticians
 services:
