@@ -17,7 +17,9 @@ import {
   patchOf,
   text,
 } from '../hr-common/crud';
+import { accountingService } from '../integrations/accounting.service';
 import { payrollService, salaryService } from './payroll.service';
+import { requireTenantId } from '../../shared/utils/tenant-scope';
 
 const tags = ['Payroll'];
 const security = [{ bearerAuth: [] }];
@@ -307,6 +309,22 @@ export const payrollRoutes: FastifyPluginAsyncZod = async (app) => {
       sendSuccess(reply, await payrollService.approve(req.auth!, req.params.id), {
         message: 'Payroll approved',
       }),
+  );
+  app.post(
+    '/payroll-runs/:id/send-to-accounting',
+    { preHandler: approve, schema: { tags, security, params: idParams } },
+    async (req, reply) =>
+      sendSuccess(
+        reply,
+        await accountingService.sendRun(requireTenantId(req.auth!), req.params.id),
+        { message: 'Sent to accounting' },
+      ),
+  );
+  app.get(
+    '/payroll-runs/:id/accounting-status',
+    { preHandler: read, schema: { tags, security, params: idParams } },
+    async (req, reply) =>
+      sendSuccess(reply, await accountingService.status(requireTenantId(req.auth!), req.params.id)),
   );
   app.post(
     '/payroll-runs/:id/lock',

@@ -70,6 +70,10 @@ const schema = z.object({
     .positive()
     .default(10 * 1024 * 1024),
 
+  // Accounting (Invobiz) integration: base API URL (…/api/v1) and the shared HMAC secret
+  // (= HR_PAYROLL_SECRET there). Unset = integration off.
+  ACCOUNTING_API_URL: z.string().url().optional(),
+  ACCOUNTING_SHARED_SECRET: z.string().min(32).optional(),
   SWAGGER_ENABLED: bool.optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });

@@ -6,6 +6,7 @@ import { toCamel } from '../../shared/utils/case';
 import { renderPdf, type PdfLine } from '../../shared/utils/pdf';
 import { requireTenantId, tenantScope } from '../../shared/utils/tenant-scope';
 import { audit } from '../hr-common/audit';
+import { accountingService } from '../integrations/accounting.service';
 import { dbGuard } from '../hr-common/crud';
 import { findMyEmployee } from '../hr-common/me';
 import { notify } from '../notifications/notifications.service';
@@ -309,7 +310,7 @@ export const payrollService = {
         const items = await tenantScope(trx, 'employee_salary_items as i', tenantId)
           .join('salary_components as c', 'c.id', 'i.component_id')
           .where('i.salary_id', salary.id)
-          .select('c.name', 'c.kind', 'c.is_taxable', 'c.is_epf_applicable', 'i.amount');
+          .select('c.code', 'c.name', 'c.kind', 'c.is_taxable', 'c.is_epf_applicable', 'i.amount');
         const adjustments = await tenantScope(trx, 'payroll_adjustments', tenantId).where({
           employee_id: e.id,
           year: run.year,
@@ -318,6 +319,7 @@ export const payrollService = {
         const lines: PayLine[] = [
           ...items.map((i) => ({
             label: i.name,
+            code: i.code,
             kind: i.kind,
             amount: num(i.amount),
             taxable: i.is_taxable,
@@ -325,6 +327,7 @@ export const payrollService = {
           })),
           ...adjustments.map((a) => ({
             label: a.label,
+            code: a.kind === 'earning' ? 'ADJ-EARN' : 'ADJ-DED',
             kind: a.kind,
             amount: num(a.amount),
             taxable: a.is_taxable,
@@ -469,6 +472,10 @@ export const payrollService = {
         .update({ status: 'locked', locked_at: trx.fn.now() });
       await audit(trx, auth, 'payroll.lock', 'payroll_runs', runId, null);
     });
+    // Hand the run to accounting. A failure is recorded on the run and can be retried;
+    // it never undoes the lock.
+    if (accountingService.enabled())
+      await accountingService.sendRun(tenantId, runId).catch(() => undefined);
     return payrollService.getRun(auth, runId);
   },
 

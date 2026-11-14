@@ -6,6 +6,7 @@ import { requirePermissions } from '../auth/auth.guard';
 import { masterController, unitsController as units } from './organization.controller';
 import * as s from './organization.schema';
 import { sendSuccess } from '../../shared/utils/response';
+import { accountingService } from '../integrations/accounting.service';
 import {
   branchesService,
   departmentsService,
@@ -110,6 +111,17 @@ export const organizationRoutes: FastifyPluginAsyncZod = async (app) => {
     );
   }
 
+  app.post(
+    '/import-from-accounting',
+    {
+      preHandler: manage,
+      schema: { tags, security, summary: 'Import branches and departments from accounting' },
+    },
+    async (req, reply) =>
+      sendSuccess(reply, await accountingService.importOrg(req.auth!), {
+        message: 'Imported from accounting',
+      }),
+  );
   app.get(
     '/units',
     { preHandler: read, schema: { tags, security, summary: 'Organization chart (all units)' } },

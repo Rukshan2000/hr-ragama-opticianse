@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Download,
   Loader2,
   Pencil,
   Plus,
@@ -43,7 +44,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { FormAlert } from "@/features/auth/auth-card";
 import { useListState } from "@/hooks/use-list-state";
 import { useSession } from "@/hooks/use-session";
-import { applyFieldErrors, errorMessage } from "@/lib/api/client";
+import { api, applyFieldErrors, errorMessage } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import type { ListParams, Paginated } from "@/lib/api/types";
 
@@ -417,6 +418,19 @@ export function MasterDataPage<T extends Row>({
   ];
 
   const filtered = Boolean(list.params.search) || active !== "all";
+  // Branches and departments can be copied from accounting so both systems share the codes
+  // payroll is posted by.
+  const fromAccounting = ["branches", "departments"].includes(config.queryKey);
+  const importOrg = useMutation({
+    mutationFn: () =>
+      api.post<{ added: number; updated: number }>("organization/import-from-accounting"),
+    onSuccess: (r) => {
+      toast.success(`Imported from accounting: ${r.data.added} added, ${r.data.updated} updated`);
+      qc.invalidateQueries({ queryKey: ["branches"] });
+      qc.invalidateQueries({ queryKey: ["departments"] });
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
 
   return (
     <PageContainer>
@@ -425,9 +439,21 @@ export function MasterDataPage<T extends Row>({
         description={config.description}
         actions={
           canManage && (
-            <Button onClick={() => setDialog({ open: true, row: null })}>
-              <Plus /> New {config.singular.toLowerCase()}
-            </Button>
+            <div className="flex gap-2">
+              {fromAccounting && (
+                <Button
+                  variant="outline"
+                  disabled={importOrg.isPending}
+                  onClick={() => importOrg.mutate()}
+                >
+                  {importOrg.isPending ? <Loader2 className="animate-spin" /> : <Download />} Import
+                  from accounting
+                </Button>
+              )}
+              <Button onClick={() => setDialog({ open: true, row: null })}>
+                <Plus /> New {config.singular.toLowerCase()}
+              </Button>
+            </div>
           )
         }
       />

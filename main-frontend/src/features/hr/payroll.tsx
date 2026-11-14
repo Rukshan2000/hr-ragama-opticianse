@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calculator, CheckCircle2, Download, Loader2, Lock, Plus, Receipt, Trash2, Wallet } from "lucide-react";
+import { Calculator, CheckCircle2, Download, Landmark, Loader2, Lock, Plus, Receipt, RefreshCw, Send, Trash2, Wallet } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DataTable, SearchInput } from "@/components/shared/data-table";
@@ -160,6 +160,55 @@ export function PayrollPoliciesPage() {
 
 type Run = Row & { status: string; year: number; month: number; totalGross: number; totalNet: number; totalEmployerCost: number; employeeCount: number; payslips?: Row[] };
 
+const SYNC_LABEL: Record<string, string> = {
+  sent: "Sent to accounting",
+  failed: "Not sent",
+  needs_mapping: "Received — waiting for account mapping",
+  ready: "Received — waiting for approval",
+  posted: "Posted to the ledger",
+  rejected: "Rejected in accounting",
+  not_received: "Not received by accounting",
+};
+
+/** Where a locked run stands in accounting (Invobiz), with send / refresh. */
+function AccountingSync({ run }: { run: Run }) {
+  const { can } = useSession();
+  const qc = useQueryClient();
+  const done = () => qc.invalidateQueries({ queryKey: ["payroll-runs"] });
+  const send = useMutation({
+    mutationFn: () => api.post(`payroll-runs/${run.id}/send-to-accounting`),
+    onSuccess: () => { toast.success("Sent to accounting"); done(); },
+    onError: (e) => { toast.error(errorMessage(e)); done(); },
+  });
+  const refresh = useMutation({
+    mutationFn: () => api.get(`payroll-runs/${run.id}/accounting-status`),
+    onSuccess: done,
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  const status = run.accountingStatus as string | null;
+  const message = run.accountingMessage as string | null;
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border p-3 text-sm">
+      <Landmark className="size-4 text-muted-foreground" />
+      <div className="min-w-0 flex-1">
+        <p className="font-medium">Accounting: {status ? SYNC_LABEL[status] ?? status : "Not sent yet"}</p>
+        {message && <p className={status === "failed" ? "text-danger" : "text-muted-foreground"}>{message}</p>}
+        {run.accountingSyncedAt ? <p className="text-xs text-muted-foreground">Updated {formatDateTime(run.accountingSyncedAt as string)}</p> : null}
+      </div>
+      {status && status !== "failed" && (
+        <Button variant="outline" size="sm" disabled={refresh.isPending} onClick={() => refresh.mutate()}>
+          {refresh.isPending ? <Loader2 className="animate-spin" /> : <RefreshCw />} Refresh
+        </Button>
+      )}
+      {(!status || status === "failed") && can("payroll:approve") && (
+        <Button size="sm" disabled={send.isPending} onClick={() => send.mutate()}>
+          {send.isPending ? <Loader2 className="animate-spin" /> : <Send />} Send to accounting
+        </Button>
+      )}
+    </div>
+  );
+}
+
 function RunDetail({ id, onClose }: { id: string; onClose: () => void }) {
   const { can } = useSession();
   const qc = useQueryClient();
@@ -218,6 +267,7 @@ function RunDetail({ id, onClose }: { id: string; onClose: () => void }) {
                 {r.status === "approved" && can("payroll:approve") && <Button size="sm" variant="outline" onClick={() => setConfirm("lock")}><Lock /> Lock</Button>}
               </div>
             </div>
+            {r.status === "locked" && <AccountingSync run={r} />}
             <DataTable
               columns={[
                 col.employee(),

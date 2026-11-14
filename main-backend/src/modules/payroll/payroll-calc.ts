@@ -13,6 +13,8 @@ export interface PayrollPolicy {
 
 export interface PayLine {
   label: string;
+  /** Component code (accounting maps by it); one-off adjustments use ADJ-EARN / ADJ-DED. */
+  code?: string;
   kind: 'earning' | 'deduction';
   amount: number;
   taxable: boolean;
@@ -28,6 +30,9 @@ export interface PayInput {
   /** Fraction of the month employed (joined/left mid-month); 1 = full month. */
   proration: number;
 }
+
+/** Codes of the statutory/system deductions inside a payslip's `deductions` list. */
+export const SYSTEM_CODES = { epf: 'EPF_EE', apit: 'APIT', loan: 'LOAN' } as const;
 
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
@@ -58,6 +63,7 @@ export function calculatePayslip(p: PayrollPolicy, i: PayInput) {
   if (otPay > 0)
     earnings.push({
       label: `Overtime (${otHours} h)`,
+      code: 'OT',
       kind: 'earning',
       amount: otPay,
       taxable: true,
@@ -74,21 +80,29 @@ export function calculatePayslip(p: PayrollPolicy, i: PayInput) {
   const etf = r2((epfBase * p.etf_rate) / 100);
   const apit = progressiveTax(taxable, p.apit_brackets);
 
-  const deductions: { label: string; amount: number }[] = [
+  const deductions: { label: string; code?: string; amount: number }[] = [
     ...i.lines
       .filter((l) => l.kind === 'deduction')
-      .map((l) => ({ label: l.label, amount: r2(l.amount) })),
+      .map((l) => ({ label: l.label, code: l.code, amount: r2(l.amount) })),
   ];
   if (epfEmployee)
-    deductions.push({ label: `EPF employee (${p.epf_employee_rate}%)`, amount: epfEmployee });
-  if (apit) deductions.push({ label: 'APIT', amount: apit });
+    deductions.push({
+      label: `EPF employee (${p.epf_employee_rate}%)`,
+      code: SYSTEM_CODES.epf,
+      amount: epfEmployee,
+    });
+  if (apit) deductions.push({ label: 'APIT', code: SYSTEM_CODES.apit, amount: apit });
   if (i.loanDeduction)
-    deductions.push({ label: 'Loan / advance recovery', amount: r2(i.loanDeduction) });
+    deductions.push({
+      label: 'Loan / advance recovery',
+      code: SYSTEM_CODES.loan,
+      amount: r2(i.loanDeduction),
+    });
   const totalDeductions = r2(deductions.reduce((s, d) => s + d.amount, 0));
 
   return {
     basic_salary: basic,
-    earnings: earnings.map((l) => ({ label: l.label, amount: l.amount })),
+    earnings: earnings.map((l) => ({ label: l.label, code: l.code, amount: l.amount })),
     deductions,
     overtime_hours: otHours,
     overtime_pay: otPay,
