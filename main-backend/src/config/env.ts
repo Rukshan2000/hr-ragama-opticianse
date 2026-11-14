@@ -74,6 +74,15 @@ const schema = z.object({
   // (= HR_PAYROLL_SECRET there). Unset = integration off.
   ACCOUNTING_API_URL: z.string().url().optional(),
   ACCOUNTING_SHARED_SECRET: z.string().min(32).optional(),
+  // InvoHub single sign-on. Unset HUB_PUBLIC_KEY = /auth/hub disabled.
+  // The hub's RSA public key (PEM, newlines may be \\n-escaped), from invohub/.well-known/jwks.json.
+  HUB_PUBLIC_KEY: z
+    .string()
+    .min(100)
+    .transform((v) => v.replace(/\\n/g, '\n'))
+    .optional(),
+  HUB_AUDIENCE: z.string().default('invoteam'),
+  HUB_ISSUER: z.string().default('invohub'),
   SWAGGER_ENABLED: bool.optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });

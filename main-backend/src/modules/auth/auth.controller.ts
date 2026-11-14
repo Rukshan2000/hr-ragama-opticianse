@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { sendSuccess } from '../../shared/utils/response';
 import { authService } from './auth.service';
+import { hubLogin, hubLogout } from './hub.service';
 import type {
   ChangePasswordBody,
   ForgotPasswordBody,
@@ -29,6 +30,17 @@ export const authController = {
     return sendSuccess(reply, await authService.login(req.body, client(req)), {
       message: 'Login successful',
     });
+  },
+
+  async hub(req: Req<{ token: string }>, reply: FastifyReply) {
+    return sendSuccess(reply, await hubLogin(req.body.token, client(req)), {
+      message: 'Login successful',
+    });
+  },
+
+  async hubLogout(req: Req<{ token: string }>, reply: FastifyReply) {
+    await hubLogout(req.body.token);
+    return sendSuccess(reply, null, { message: 'Signed out' });
   },
 
   async refresh(req: Req<RefreshBody>, reply: FastifyReply) {

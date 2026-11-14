@@ -1,4 +1,5 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
+import { z } from 'zod';
 import { appConfig } from '../../config/app.config';
 import { env } from '../../config/env';
 import { authController as c } from './auth.controller';
@@ -31,6 +32,32 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     { config: strict, schema: { tags, summary: 'Log in', body: s.loginBody } },
     c.login,
   );
+  if (env.HUB_PUBLIC_KEY)
+    app.post(
+      '/hub',
+      {
+        config: strict,
+        schema: {
+          tags,
+          summary: 'Sign in with an InvoHub launch token',
+          body: z.object({ token: z.string().min(20).max(4096) }),
+        },
+      },
+      c.hub,
+    );
+  if (env.HUB_PUBLIC_KEY)
+    app.post(
+      '/hub/logout',
+      {
+        config: strict,
+        schema: {
+          tags,
+          summary: 'End all sessions of a user (InvoHub single logout)',
+          body: z.object({ token: z.string().min(20).max(4096) }),
+        },
+      },
+      c.hubLogout,
+    );
   app.post(
     '/refresh',
     { config: strict, schema: { tags, summary: 'Rotate refresh token', body: s.refreshBody } },

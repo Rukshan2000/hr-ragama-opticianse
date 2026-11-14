@@ -31,6 +31,7 @@ import { useLogout } from "@/features/auth/use-auth-actions";
 import { useSession } from "@/hooks/use-session";
 import { NotificationsBell } from "@/features/hr/workflow";
 import { SidebarContent } from "./app-sidebar";
+import { AppSwitcher } from "./app-switcher";
 
 export function Breadcrumbs() {
   const pathname = usePathname();
@@ -212,6 +213,7 @@ export function AppHeader() {
       </div>
       <GlobalSearch />
       <NotificationsBell />
+      <AppSwitcher />
       <ThemeSwitcher />
       <ProfileMenu />
     </header>

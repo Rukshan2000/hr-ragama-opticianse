@@ -6,6 +6,8 @@ const GUEST_ONLY = ["/login", "/forgot-password", "/reset-password"];
 
 export function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
+  // InvoHub launch: always redeem the token, even over an existing session.
+  if (pathname === "/auth/hub") return NextResponse.next();
   const signedIn = req.cookies.has(REFRESH_COOKIE);
   const guestPage = GUEST_ONLY.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
