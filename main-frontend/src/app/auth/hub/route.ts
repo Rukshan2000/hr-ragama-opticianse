@@ -13,7 +13,7 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 
 function failure(message: string, status: number) {
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign-in failed</title>
-<style>body{font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100dvh;margin:0;padding:16px;background:#fafafa;color:#111}main{max-width:420px;text-align:center}a{color:#dc2626}</style></head>
+<style>body{font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100dvh;margin:0;padding:16px;background:#fafafa;color:#111}main{max-width:420px;text-align:center}a{color:#1D4ED8}</style></head>
 <body><main><h1>Can't open this app</h1><p>${esc(message)}</p><p><a href="${esc(HUB_URL)}">Back to InvoHub</a> · <a href="/login">Sign in here</a></p></main></body></html>`;
   return new NextResponse(html, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
 }
