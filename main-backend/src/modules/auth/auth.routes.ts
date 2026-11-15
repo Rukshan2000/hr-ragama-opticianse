@@ -47,6 +47,23 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     );
   if (env.HUB_PUBLIC_KEY)
     app.post(
+      '/hub/sync',
+      {
+        bodyLimit: 20 * 1024 * 1024,
+        config: strict,
+        schema: {
+          tags,
+          summary: 'Apply InvoHub master data (users, roles, organization)',
+          body: z.object({
+            token: z.string().min(20).max(4096),
+            data: z.string().max(20 * 1024 * 1024),
+          }),
+        },
+      },
+      c.hubSync,
+    );
+  if (env.HUB_PUBLIC_KEY)
+    app.post(
       '/hub/logout',
       {
         config: strict,

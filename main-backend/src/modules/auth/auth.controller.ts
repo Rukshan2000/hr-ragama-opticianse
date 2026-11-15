@@ -2,6 +2,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { sendSuccess } from '../../shared/utils/response';
 import { authService } from './auth.service';
 import { hubLogin, hubLogout } from './hub.service';
+import { hubSync } from './hub-sync';
 import type {
   ChangePasswordBody,
   ForgotPasswordBody,
@@ -36,6 +37,10 @@ export const authController = {
     return sendSuccess(reply, await hubLogin(req.body.token, client(req)), {
       message: 'Login successful',
     });
+  },
+
+  async hubSync(req: Req<{ token: string; data: string }>, reply: FastifyReply) {
+    return sendSuccess(reply, await hubSync(req.body.token, req.body.data), { message: 'Synced' });
   },
 
   async hubLogout(req: Req<{ token: string }>, reply: FastifyReply) {

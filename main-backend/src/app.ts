@@ -17,6 +17,9 @@ import { permissionsRoutes } from './modules/permissions/permissions.routes';
 import { rolesRoutes } from './modules/roles/roles.routes';
 import { tenantsRoutes } from './modules/tenants/tenants.routes';
 import { usersRoutes } from './modules/users/users.routes';
+import { isHubManaged } from './modules/auth/hub-sync';
+import { verifyAccessToken } from './modules/auth/token.service';
+import { ConflictError } from './shared/errors/app-error';
 import { registerErrorHandlers } from './shared/plugins/error-handler';
 import { registerSecurity } from './shared/plugins/security';
 import { registerSwagger } from './shared/plugins/swagger';
@@ -40,6 +43,22 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.setSerializerCompiler(serializerCompiler);
   app.addHook('onSend', async (req, reply) => {
     reply.header('x-request-id', req.id);
+  });
+
+  // Organizations managed by InvoHub: users, roles and shared organization data are edited there.
+  const HUB_OWNED = /^\/api\/v1\/(users|roles|organization\/(branches|departments|designations))/;
+  app.addHook('preHandler', async (req) => {
+    if (req.method === 'GET' || !HUB_OWNED.test(req.url.split('?')[0]!)) return;
+    const auth = req.headers.authorization;
+    if (!auth?.startsWith('Bearer ')) return; // the route's own guard rejects it
+    let tid: string | null;
+    try {
+      tid = verifyAccessToken(auth.slice(7)).tid;
+    } catch {
+      return;
+    }
+    if (tid && (await isHubManaged(tid)))
+      throw new ConflictError('This is managed in InvoHub. Make the change there.');
   });
 
   registerErrorHandlers(app);

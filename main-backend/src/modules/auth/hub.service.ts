@@ -37,7 +37,7 @@ export async function hubLogout(token: string) {
 }
 
 /** Verifies a hub token of the given type and burns its jti. */
-async function redeem(token: string, typ: 'launch' | 'logout') {
+export async function redeem(token: string, typ: 'launch' | 'logout' | 'sync') {
   let c: jwt.JwtPayload;
   try {
     c = jwt.verify(token, publicKey(), {
@@ -53,7 +53,7 @@ async function redeem(token: string, typ: 'launch' | 'logout') {
   if (
     c.typ !== typ ||
     typeof jti !== 'string' ||
-    typeof email !== 'string' ||
+    (typ !== 'sync' && typeof email !== 'string') ||
     typeof exp !== 'number'
   )
     throw new UnauthorizedError('This sign-in link is invalid or has expired');
@@ -66,5 +66,5 @@ async function redeem(token: string, typ: 'launch' | 'logout') {
     .ignore()
     .returning('jti');
   if (fresh.length === 0) throw new UnauthorizedError('This sign-in link was already used');
-  return { ...c, email } as jwt.JwtPayload & { email: string };
+  return c as jwt.JwtPayload & { email: string };
 }
