@@ -47,6 +47,7 @@ const ids = {
   des: randomUUID(),
   role: randomUUID(),
   user: randomUUID(),
+  levels: [randomUUID(), randomUUID(), randomUUID()],
 };
 const unit = (id: string, kind: string, code: string, extra: object = {}) => ({
   id,
@@ -71,6 +72,11 @@ const snapshot = (perm: string) => ({
     unit(ids.div, 'division', 'AP', { parentId: ids.dep }),
     unit(ids.des, 'designation', 'MGR'),
   ],
+  levels: ['Company', 'Branch', 'Department'].map((name, i) => ({
+    id: ids.levels[i]!,
+    name,
+    rank: i + 1,
+  })),
   roles: [
     {
       id: ids.role,
@@ -98,6 +104,11 @@ describe('InvoHub master-data sync', () => {
     const other = await createMember(app(), owner, 'other@sync.test', 'user');
 
     expect((await push(owner.tenantId!, snapshot('users:read'), true).send()).statusCode).toBe(401);
+    // Local levels: 'Branch' gets linked and re-ranked, unused 'Legacy' goes away.
+    await db('org_levels').insert([
+      { tenant_id: owner.tenantId, name: 'Branch', rank: 1 },
+      { tenant_id: owner.tenantId, name: 'Legacy', rank: 5 },
+    ]);
 
     const p = push(owner.tenantId!, snapshot('users:read'));
     const res = await p.send();
@@ -133,6 +144,9 @@ describe('InvoHub master-data sync', () => {
     expect(await db('designations').where({ tenant_id: owner.tenantId }).pluck('code')).toEqual([
       'MGR',
     ]);
+    const levels = () =>
+      db('org_levels').where({ tenant_id: owner.tenantId }).orderBy('rank').pluck('name');
+    expect(await levels()).toEqual(['Company', 'Branch', 'Department']);
     // Second push is idempotent and links, never duplicates.
     expect((await push(owner.tenantId!, snapshot('roles:read')).send()).statusCode).toBe(200);
     expect(
@@ -141,6 +155,7 @@ describe('InvoHub master-data sync', () => {
         .count('* as n')
         .first(),
     ).toMatchObject({ n: '1' });
+    expect(await levels()).toEqual(['Company', 'Branch', 'Department']);
 
     // Local edits of hub-owned data are refused.
     await db('tenant_memberships')

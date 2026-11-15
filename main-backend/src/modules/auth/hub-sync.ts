@@ -35,6 +35,10 @@ const company = z.looseObject({
 const snapshotSchema = z.object({
   companies: z.array(company),
   units: z.array(unit),
+  // Org chart levels; older hubs don't send them, and then local levels stay as they are.
+  levels: z
+    .array(z.object({ id: z.uuid(), name: z.string().min(1).max(100), rank: z.number().int().positive() }))
+    .optional(),
   roles: z.array(
     z.object({
       id: z.uuid(),

@@ -46,7 +46,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   });
 
   // Organizations managed by InvoHub: users, roles and shared organization data are edited there.
-  const HUB_OWNED = /^\/api\/v1\/(users|roles|organization\/(branches|departments|designations))/;
+  const HUB_OWNED = /^\/api\/v1\/(users|roles|organization\/(branches|departments|designations|levels))/;
   app.addHook('preHandler', async (req) => {
     if (req.method === 'GET' || !HUB_OWNED.test(req.url.split('?')[0]!)) return;
     const auth = req.headers.authorization;

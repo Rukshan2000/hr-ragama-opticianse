@@ -40,7 +40,58 @@ export async function applyOrg(trx: DbExecutor, tenantId: string, snap: Snapshot
   await sync('branch', 'branches', (u) => ({ address: u.address, phone: u.phone, email: u.email }));
   await sync('department', 'departments', () => ({}));
   await sync('designation', 'designations', () => ({}));
+  if (snap.levels) await applyLevels(trx, tenantId, snap.levels);
   return null;
+}
+
+/**
+ * Org chart levels follow the hub exactly. Names and ranks are unique, so renames and re-ranks
+ * go through a parked value first; local levels the hub doesn't send are deleted, or parked
+ * after the hub's levels when org units still use them.
+ */
+async function applyLevels(
+  trx: DbExecutor,
+  tenantId: string,
+  levels: NonNullable<Snapshot['levels']>,
+) {
+  const PARK = 1_000_000;
+  const ids: string[] = [];
+  for (const l of levels) {
+    const { id } = await link(
+      trx,
+      'level',
+      tenantId,
+      l.id,
+      async () =>
+        (await trx('org_levels').where({ tenant_id: tenantId, name: l.name }).first('id'))?.id,
+      async () =>
+        (
+          await trx('org_levels')
+            .insert({ tenant_id: tenantId, name: `~${l.id}`, rank: PARK + l.rank })
+            .returning('id')
+        )[0].id,
+    );
+    await trx('org_levels').where({ id }).update({ name: `~${l.id}`, rank: PARK + l.rank });
+    ids.push(id);
+  }
+  const others = await trx('org_levels')
+    .where({ tenant_id: tenantId })
+    .whereNotIn('id', ids)
+    .select('id', 'name', 'rank');
+  for (const o of others) {
+    if (!(await trx('org_units').where({ level_id: o.id }).first('id')))
+      await trx('org_levels').where({ id: o.id }).delete();
+    else if (o.rank < 2 * PARK)
+      await trx('org_levels')
+        .where({ id: o.id })
+        .update({ rank: 2 * PARK + o.rank, name: `${o.name} (old)`.slice(0, 100) });
+  }
+  await trx('hub_links')
+    .where({ entity: 'level', tenant_id: tenantId })
+    .whereNotIn('local_id', ids)
+    .delete();
+  for (const [i, l] of levels.entries())
+    await trx('org_levels').where({ id: ids[i] }).update({ name: l.name, rank: l.rank });
 }
 
 export async function applyUserCompanies(..._args: unknown[]) {
