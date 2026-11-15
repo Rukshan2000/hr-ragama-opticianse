@@ -83,6 +83,12 @@ const schema = z.object({
     .optional(),
   HUB_AUDIENCE: z.string().default('invoteam'),
   HUB_ISSUER: z.string().default('invohub'),
+  // Outgoing mail. Unset SMTP_HOST = mail is only logged (development).
+  SMTP_HOST: z.string().min(1).optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  MAIL_FROM: z.string().default('no-reply@kwingsmedia.com'),
   SWAGGER_ENABLED: bool.optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });

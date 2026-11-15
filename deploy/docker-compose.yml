@@ -33,6 +33,8 @@ services:
     env_file: ../main-backend/.env.production
     extra_hosts: ['host.docker.internal:host-gateway'] # MinIO runs on this host
     ports: ['127.0.0.1:4030:5000']
+    # Private link to accounting (Invobiz): ACCOUNTING_API_URL=http://invobiz-api:5000/api/v1
+    networks: [default, erp-link, mail] # mail: outgoing via kwings-mail postfix
     depends_on:
       migrate: { condition: service_completed_successfully }
 
@@ -47,3 +49,10 @@ services:
 
 volumes:
   pgdata:
+
+networks:
+  erp-link:
+    external: true # docker network create erp-link
+  mail:
+    external: true
+    name: kwings-mail_default
