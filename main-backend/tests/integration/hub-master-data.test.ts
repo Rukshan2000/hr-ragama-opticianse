@@ -64,6 +64,7 @@ const unit = (id: string, kind: string, code: string, extra: object = {}) => ({
   ...extra,
 });
 const snapshot = (perm: string) => ({
+  organization: { name: 'Hub Org' },
   companies: [{ id: ids.co, code: 'ACME', name: 'Acme Ltd', isActive: true, tin: '123' }],
   units: [
     unit(ids.hq, 'branch', 'HQ', { isHeadOffice: true }),
@@ -147,6 +148,9 @@ describe('InvoHub master-data sync', () => {
     const levels = () =>
       db('org_levels').where({ tenant_id: owner.tenantId }).orderBy('rank').pluck('name');
     expect(await levels()).toEqual(['Company', 'Branch', 'Department']);
+    expect(await db('tenants').where({ id: owner.tenantId }).first('name')).toEqual({
+      name: 'Hub Org',
+    });
     // Second push is idempotent and links, never duplicates.
     expect((await push(owner.tenantId!, snapshot('roles:read')).send()).statusCode).toBe(200);
     expect(

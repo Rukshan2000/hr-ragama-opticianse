@@ -33,6 +33,7 @@ const company = z.looseObject({
   isActive: z.boolean(),
 });
 const snapshotSchema = z.object({
+  organization: z.object({ name: z.string().trim().min(1).max(200) }).optional(),
   companies: z.array(company),
   units: z.array(unit),
   // Org chart levels; older hubs don't send them, and then local levels stay as they are.
@@ -133,6 +134,13 @@ export async function hubSync(token: string, data: string) {
       .insert({ entity: 'tenant', hub_id: claims.org, local_id: tenantId, tenant_id: tenantId })
       .onConflict()
       .ignore();
+    // The organization's name follows InvoHub, including the org chart's top unit.
+    if (snap.organization) {
+      await trx('tenants').where({ id: tenantId }).update({ name: snap.organization.name });
+      await trx('org_units')
+        .where({ tenant_id: tenantId, code: 'ORG' })
+        .update({ name: snap.organization.name });
+    }
 
     // Roles and their permissions in this app.
     const roleIds = new Map<string, string>();
