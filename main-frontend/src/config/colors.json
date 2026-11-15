@@ -8,9 +8,9 @@
   },
   "dark": {
     "brand": { "primary": "#EF4444", "secondary": "#F5F0EB", "accent": "#F87171" },
-    "background": { "app": "#12100E", "surface": "#1B1815", "subtle": "#25211D", "sidebar": "#161310" },
-    "text": { "primary": "#F3EEE9", "secondary": "#B3A89E", "muted": "#7D736A", "inverse": "#12100E" },
-    "border": { "default": "#2E2924", "subtle": "#25211D", "strong": "#3D3630" },
+    "background": { "app": "#000000", "surface": "#0E0E0E", "subtle": "#1A1A1A", "sidebar": "#070707" },
+    "text": { "primary": "#F3EEE9", "secondary": "#B3A89E", "muted": "#7D736A", "inverse": "#111111" },
+    "border": { "default": "#242424", "subtle": "#1A1A1A", "strong": "#333333" },
     "status": { "success": "#3FB984", "warning": "#E8AE4C", "danger": "#EF6B6B", "info": "#5FA0E8" }
   }
 }
