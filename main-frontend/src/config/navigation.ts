@@ -44,6 +44,8 @@ export interface NavItem {
   permission?: string;
   /** "tenant": needs an organization selected; "platform": only without one. */
   context?: "tenant" | "platform";
+  /** Hidden when the tenant is managed by InvoHub (edited there instead). */
+  hubOwned?: boolean;
 }
 
 export interface NavGroup {
@@ -134,9 +136,9 @@ export const navigation: NavGroup[] = [
       { title: "Announcements", href: "/announcements", icon: Megaphone, permission: "announcements:manage", context: "tenant" },
       { title: "Reports", href: "/reports", icon: BarChart3, permission: "reports:read", context: "tenant" },
       { title: "HR Settings", href: "/hr-settings", icon: Settings, permission: "settings:manage", context: "tenant" },
-      { title: "Users", href: "/users", icon: Users, permission: "users:read", context: "tenant" },
-      { title: "Roles", href: "/roles", icon: ShieldCheck, permission: "roles:read", context: "tenant" },
-      { title: "Permissions", href: "/permissions", icon: KeyRound, permission: "permissions:read", context: "tenant" },
+      { title: "Users", href: "/users", icon: Users, permission: "users:read", context: "tenant", hubOwned: true },
+      { title: "Roles", href: "/roles", icon: ShieldCheck, permission: "roles:read", context: "tenant", hubOwned: true },
+      { title: "Permissions", href: "/permissions", icon: KeyRound, permission: "permissions:read", context: "tenant", hubOwned: true },
     ],
   },
   {
@@ -146,13 +148,14 @@ export const navigation: NavGroup[] = [
   { title: "Account", items: [{ title: "Settings", href: "/settings", icon: Settings }] },
 ];
 
-export function visibleNavigation(can: (p: string) => boolean, inTenant: boolean): NavGroup[] {
+export function visibleNavigation(can: (p: string) => boolean, inTenant: boolean, hubManaged = false): NavGroup[] {
   return navigation
     .map((g) => ({
       ...g,
       items: g.items.filter(
         (i) =>
           (!i.permission || can(i.permission)) &&
+          !(hubManaged && i.hubOwned) &&
           (!i.context || (i.context === "tenant" ? inTenant : !inTenant)),
       ),
     }))

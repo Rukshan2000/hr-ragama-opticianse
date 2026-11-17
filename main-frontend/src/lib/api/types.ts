@@ -54,6 +54,7 @@ export interface Me {
   tenants: TenantSummary[];
   roles: RoleSummary[];
   permissions: string[];
+  hubManaged: boolean;
 }
 
 /** Login/register/switch-tenant response after the BFF strips the tokens. */

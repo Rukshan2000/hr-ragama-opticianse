@@ -11,6 +11,7 @@ import { getDummyHash, hashPassword, verifyPassword } from '../../shared/utils/p
 import { createTenantWithDefaults, joinDefaultTenant } from '../tenants/tenants.service';
 import { usersRepository } from '../users/users.repository';
 import { authRepository } from './auth.repository';
+import { isHubManaged } from './hub-sync';
 import { mfaService } from './mfa.service';
 import type { ClientInfo, TenantSummary } from './auth.types';
 import { hashRefreshToken, issueTokens } from './token.service';
@@ -165,13 +166,14 @@ export const authService = {
   },
 
   async me(userId: string, tenantId: string | null, permissions: Iterable<string>) {
-    const [user, roles, tenants] = await Promise.all([
+    const [user, roles, tenants, hubManaged] = await Promise.all([
       db('users')
         .select('id', 'name', 'email', 'last_login_at', 'created_at')
         .where({ id: userId })
         .first(),
       authRepository.findRolesForContext(userId, tenantId),
       authRepository.findActiveTenantsForUser(userId),
+      tenantId ? isHubManaged(tenantId) : false,
     ]);
     return {
       id: user.id as string,
@@ -183,6 +185,8 @@ export const authService = {
       tenants,
       roles,
       permissions: [...permissions].sort(),
+      /** Users, roles and permissions are edited in InvoHub for this tenant. */
+      hubManaged,
     };
   },
 

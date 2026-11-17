@@ -174,6 +174,9 @@ describe('InvoHub master-data sync', () => {
     });
     expect(create.statusCode).toBe(409);
     expect(create.json().message).toMatch(/InvoHub/);
+    // The UI hides Users/Roles/Permissions for hub-managed tenants.
+    const me = await app().inject({ method: 'GET', url: `${API}/auth/me`, headers: bearer(s.accessToken) });
+    expect(me.json().data.hubManaged).toBe(true);
   });
 
   it('catalog-only request changes nothing', async () => {

@@ -28,6 +28,7 @@ describe('registration', () => {
     expect(me.json().data.roles.map((r: { slug: string }) => r.slug)).toEqual(['admin']);
     expect(me.json().data.permissions).toContain('users:create');
     expect(me.json().data.permissions).not.toContain('tenants:manage');
+    expect(me.json().data.hubManaged).toBe(false); // standalone tenant keeps local management
   });
 
   it('rejects duplicate emails (case-insensitive) with 409', async () => {

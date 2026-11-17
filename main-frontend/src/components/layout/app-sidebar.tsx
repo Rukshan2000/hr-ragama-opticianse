@@ -167,9 +167,9 @@ function NavGroups({
   collapsed: boolean;
   onNavigate?: () => void;
 }) {
-  const { can, inTenant } = useSession();
+  const { can, inTenant, me } = useSession();
   const [closed, setClosed] = useState<Record<string, boolean>>({});
-  const groups = visibleNavigation(can, inTenant);
+  const groups = visibleNavigation(can, inTenant, me?.hubManaged);
   // Navigating into a collapsed group opens it, so the current page is always shown.
   const pathname = usePathname();
   const activeGroup = groups.find((g) => g.items.some((i) => isActive(i.href, pathname)))?.title;
