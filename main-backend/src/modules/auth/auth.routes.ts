@@ -64,6 +64,19 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     );
   if (env.HUB_PUBLIC_KEY)
     app.post(
+      '/hub/provision',
+      {
+        config: strict,
+        schema: {
+          tags,
+          summary: 'Create the workspace of an InvoHub organization (first launch)',
+          body: z.object({ token: z.string().min(20).max(4096) }),
+        },
+      },
+      c.hubProvision,
+    );
+  if (env.HUB_PUBLIC_KEY)
+    app.post(
       '/hub/logout',
       {
         config: strict,

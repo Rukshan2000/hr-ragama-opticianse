@@ -85,3 +85,31 @@ describe('InvoHub sign-in (/auth/hub)', () => {
     expect((await logout(token({ email: 'nobody@a.com', typ: 'logout' }))).statusCode).toBe(200);
   });
 });
+
+describe('InvoHub provisioning (/auth/hub/provision)', () => {
+  it('creates the organization workspace once, with the launching user as owner', async () => {
+    const org = randomUUID();
+    const prov = () =>
+      app().inject({
+        method: 'POST',
+        url: `${API}/auth/hub/provision`,
+        payload: {
+          token: token({
+            email: 'New@Org.com',
+            name: 'New Owner',
+            org,
+            org_name: 'New Org',
+            typ: 'provision',
+          }),
+        },
+      });
+    const first = await prov();
+    expect(first.statusCode).toBe(200);
+    const tenantId = first.json().data.tenantId;
+    expect((await prov()).json().data.tenantId).toBe(tenantId); // idempotent
+
+    const res = await hub(token({ email: 'new@org.com', ext_tenant: tenantId }));
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.tenant.name).toBe('New Org');
+  });
+});

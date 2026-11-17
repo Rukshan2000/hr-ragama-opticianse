@@ -1,7 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { sendSuccess } from '../../shared/utils/response';
 import { authService } from './auth.service';
-import { hubLogin, hubLogout } from './hub.service';
+import { hubLogin, hubLogout, hubProvision } from './hub.service';
 import { hubSync } from './hub-sync';
 import type {
   ChangePasswordBody,
@@ -41,6 +41,10 @@ export const authController = {
 
   async hubSync(req: Req<{ token: string; data: string }>, reply: FastifyReply) {
     return sendSuccess(reply, await hubSync(req.body.token, req.body.data), { message: 'Synced' });
+  },
+
+  async hubProvision(req: Req<{ token: string }>, reply: FastifyReply) {
+    return sendSuccess(reply, await hubProvision(req.body.token), { message: 'Provisioned' });
   },
 
   async hubLogout(req: Req<{ token: string }>, reply: FastifyReply) {
